@@ -124,10 +124,11 @@ balance against a profile-based baseline (TDEE).
 |---|---|---|
 | Language | TypeScript everywhere | One language, shared types between FE/BE |
 | Monorepo | pnpm workspaces (`apps/web`, `apps/api`, `packages/shared`) | Shared Zod schemas/types |
-| Frontend | React + Vite, `vite-plugin-pwa` | Lightweight, mature testing story |
+| Frontend | Angular (v21+, standalone components, signals) | User preference: Angular code is easier to read/maintain; batteries included (router, HttpClient, PWA, DI) |
+| PWA | `@angular/pwa` (Angular service worker) | First-party manifest + SW support |
 | UI | Tailwind CSS | Fast mobile-first styling |
-| Data fetching | TanStack Query | Caching, optimistic updates |
-| i18n | i18next (en, de) | Standard, works with React |
+| Data fetching | Angular `HttpClient` + signals | Built in; no extra library needed |
+| i18n | Transloco (en, de) | Runtime language switching, works with standalone Angular |
 | Backend | Node.js + Fastify | Fast, lightweight, first-class TS, easy to test via `app.inject()` |
 | Validation | Zod (shared package) | Single source of truth for API contracts |
 | ORM | Drizzle | Lightweight, SQL-transparent, great migrations |

@@ -1,0 +1,32 @@
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./e2e",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? "github" : "list",
+  use: {
+    baseURL: "http://localhost:4173",
+  },
+  projects: [
+    {
+      name: "mobile-chromium",
+      use: { ...devices["Pixel 7"] },
+    },
+  ],
+  webServer: [
+    {
+      command: "pnpm --filter @ontrack/api start:e2e",
+      url: "http://localhost:3000/api/v1/health",
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      command: "pnpm --filter @ontrack/web build && pnpm --filter @ontrack/web serve:dist",
+      url: "http://localhost:4173",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
+});

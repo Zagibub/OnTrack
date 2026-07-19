@@ -1,0 +1,18 @@
+<main>
+  <h1>OnTrack</h1>
+  <p>Track kcal in and out</p>
+  <p data-testid="api-status">
+    @switch (apiStatus()) {
+      @case ('checking') {
+        Checking API…
+      }
+      @case ('connected') {
+        API connected
+      }
+      @case ('unreachable') {
+        API unreachable
+      }
+    }
+  </p>
+</main>
+<router-outlet />
