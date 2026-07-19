@@ -1,6 +1,6 @@
 {
-  "name": "web",
-  "short_name": "web",
+  "name": "OnTrack",
+  "short_name": "OnTrack",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
@@ -53,5 +53,7 @@
       "type": "image/png",
       "purpose": "maskable any"
     }
-  ]
+  ],
+  "theme_color": "#16a34a",
+  "background_color": "#f6f7f4"
 }
