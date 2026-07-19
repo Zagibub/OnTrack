@@ -1,1 +1,36 @@
-/* You can add global styles to this file, and also import other style files */
+@import "tailwindcss";
+
+/* Dark mode: system by default, manual override via data-theme on <html> */
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* OnTrack design tokens — "custom health-app" aesthetic (spec 002) */
+@theme {
+  --color-primary: light-dark(#16a34a, #22c55e);
+  --color-primary-strong: light-dark(#15803d, #4ade80);
+  --color-on-primary: light-dark(#ffffff, #052e16);
+  --color-primary-soft: light-dark(#86efac, #166534);
+  --color-danger: light-dark(#dc2626, #f87171);
+  --color-on-danger: light-dark(#ffffff, #450a0a);
+  --color-target: light-dark(#f59e0b, #fbbf24);
+  --color-surface: light-dark(#ffffff, #1f2428);
+  --color-surface-muted: light-dark(#f6f7f4, #15181b);
+  --color-ink: light-dark(#111827, #f3f4f6);
+  --color-ink-muted: light-dark(#6b7280, #9ca3af);
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.04);
+}
+
+html {
+  /* 16px base prevents iOS zoom-on-focus; system font keeps it light */
+  font-family: system-ui, sans-serif;
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+}

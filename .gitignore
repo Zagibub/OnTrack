@@ -10,3 +10,5 @@ coverage/
 playwright-report/
 test-results/
 dev-dist/
+storybook-static/
+documentation.json

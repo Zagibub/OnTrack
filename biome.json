@@ -6,6 +6,7 @@
       "!**/dist",
       "!**/dev-dist",
       "!**/.angular",
+      "!**/storybook-static",
       "!**/playwright-report",
       "!**/test-results"
     ]
@@ -20,6 +21,11 @@
     "enabled": true,
     "rules": {
       "preset": "recommended"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
     }
   },
   "javascript": {

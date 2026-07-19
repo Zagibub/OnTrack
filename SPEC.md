@@ -126,7 +126,8 @@ balance against a profile-based baseline (TDEE).
 | Monorepo | pnpm workspaces (`apps/web`, `apps/api`, `packages/shared`) | Shared Zod schemas/types |
 | Frontend | Angular (v21+, standalone components, signals) | User preference: Angular code is easier to read/maintain; batteries included (router, HttpClient, PWA, DI) |
 | PWA | `@angular/pwa` (Angular service worker) | First-party manifest + SW support |
-| UI | Tailwind CSS | Fast mobile-first styling |
+| UI | Tailwind CSS + in-app component library (`apps/web/src/app/ui`) | Fast mobile-first styling; lightweight hand-rolled components, charts as plain SVG (no chart framework) |
+| Component explorer | Storybook for Angular (dev-only) | Histoire ruled out — supports only Vue/Svelte |
 | Data fetching | Angular `HttpClient` + signals | Built in; no extra library needed |
 | i18n | Transloco (en, de) | Runtime language switching, works with standalone Angular |
 | Backend | Node.js + Fastify | Fast, lightweight, first-class TS, easy to test via `app.inject()` |
