@@ -24,6 +24,16 @@ pnpm test         # Vitest unit/integration tests (shared, api, web)
 pnpm e2e          # Playwright smoke tests (mobile viewport, builds + serves the stack)
 ```
 
+## Storybook (component explorer)
+
+The UI library in `apps/web/src/app/ui/` is explorable in Storybook — every component
+has a `*.stories.ts` next to it.
+
+```sh
+pnpm --filter @ontrack/web storybook         # dev server on :6006
+pnpm --filter @ontrack/web build-storybook   # static build to apps/web/storybook-static
+```
+
 ## Docker
 
 ```sh
@@ -35,6 +45,7 @@ docker compose --profile tunnel up -d   # additionally exposes ontrack.eremann.d
 ## Workspace layout
 
 - `apps/web` — Angular PWA (standalone components, signals, Angular service worker)
+- `apps/web/src/app/ui` — in-app UI library (Tailwind tokens, light/dark, Storybook stories)
 - `apps/api` — Fastify JSON API (`/api/v1/...`)
 - `packages/shared` — Zod schemas shared between web and api (the API contract)
 - `e2e/` — Playwright end-to-end tests
