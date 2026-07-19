@@ -32,12 +32,15 @@ balance against a profile-based baseline (TDEE).
 ## 2. Users & Auth
 
 - Multi-tenant: every record belongs to a user; no user can ever read another user's data.
-- Authentication (v1):
-  - **Google OAuth**
-  - **Microsoft OAuth**
-  - **Email magic link** (passwordless fallback)
+- Authentication (v1), phased by credential availability (decided 2026-07-19):
+  - **Phase 1: Email magic link** — Resend account + eremann.de domain exist, ships first.
+  - **Phase 2: Google OAuth + Microsoft OAuth** — wired once client registrations exist.
 - Apple Sign-In: later iteration.
-- Session handling via secure, HTTP-only cookies.
+- Flow order: **sign-in first**, then profile onboarding (no anonymous/local mode).
+- Session handling via secure, HTTP-only, SameSite=Lax cookies. Lifetime: **30 days,
+  sliding** — extended on activity (refresh at most once per day), so active users
+  never re-authenticate; 30 days of inactivity requires a new sign-in. Magic-link
+  tokens: 15 minutes, single-use.
 - Account deletion must delete all user data (GDPR; users are EU-based, hosting is EU).
 
 ### Email (magic links)
@@ -73,7 +76,14 @@ balance against a profile-based baseline (TDEE).
   user can override.
 
 ### 3.4 Energy balance & dashboard
-- Profile: birth year, sex, height, weight, activity level.
+- Profile (collected in a post-sign-in onboarding wizard): birth year (year only, not
+  full date), sex (male / female / prefer not to say → average of both formulas),
+  height, weight, activity level. Wizard ends with an editable summary showing the
+  computed TDEE. The onboarding weight becomes the first `weight_entries` row.
+- No goal/deficit setting in v1 — balance is measured against plain TDEE (goals are a
+  later iteration).
+- Language: auto-detected from the browser, manual switcher available (no explicit
+  onboarding step).
 - Baseline: **Mifflin-St Jeor** BMR × activity factor = TDEE.
 - Activity levels (standard 5-level scale): sedentary ×1.2, lightly active ×1.375,
   moderately active ×1.55, very active ×1.725, extra active ×1.9.
