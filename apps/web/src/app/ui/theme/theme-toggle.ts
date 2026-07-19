@@ -1,21 +1,19 @@
 import { Component, inject } from "@angular/core";
+import { LucideAngularModule, MoonIcon, SunIcon } from "lucide-angular";
 import { ThemeService } from "./theme";
-
-const LABELS: Record<string, string> = {
-  system: "Theme: auto",
-  light: "Theme: light",
-  dark: "Theme: dark",
-};
 
 @Component({
   selector: "ot-theme-toggle",
+  imports: [LucideAngularModule],
   template: `
     <button
       type="button"
-      (click)="theme.cycle()"
-      class="min-h-11 rounded-full border border-ink-muted/30 bg-surface px-4 text-sm text-ink-muted"
+      (click)="theme.toggle()"
+      [attr.aria-label]="label"
+      [title]="label"
+      class="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors active:bg-surface-muted"
     >
-      {{ label }}
+      <lucide-angular [img]="icon" [size]="20" />
     </button>
   `,
 })
@@ -23,6 +21,10 @@ export class ThemeToggle {
   protected readonly theme = inject(ThemeService);
 
   protected get label(): string {
-    return LABELS[this.theme.preference()] ?? "Theme";
+    return this.theme.resolved() === "dark" ? "Switch to light theme" : "Switch to dark theme";
+  }
+
+  protected get icon() {
+    return this.theme.resolved() === "dark" ? SunIcon : MoonIcon;
   }
 }

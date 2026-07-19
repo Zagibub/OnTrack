@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "zsh",
+      "runtimeArgs": [
+        "-c",
+        "export PATH=$HOME/.nvm/versions/node/v22.23.1/bin:$PATH && pnpm --filter @ontrack/api dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "zsh",
+      "runtimeArgs": [
+        "-c",
+        "export PATH=$HOME/.nvm/versions/node/v22.23.1/bin:$PATH && pnpm --filter @ontrack/web dev"
+      ],
+      "port": 4200
+    }
+  ]
+}

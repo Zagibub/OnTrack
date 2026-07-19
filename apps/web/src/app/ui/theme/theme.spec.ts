@@ -43,14 +43,20 @@ describe("ThemeService", () => {
   });
 
   // AC-10 (002-ui-foundation)
-  it("cycles system → light → dark → system", () => {
+  it("toggles to the opposite of the resolved theme", () => {
     const s = service();
 
-    s.cycle();
-    expect(s.preference()).toBe("light");
-    s.cycle();
-    expect(s.preference()).toBe("dark");
-    s.cycle();
-    expect(s.preference()).toBe("system");
+    s.toggle();
+    expect(s.preference()).toBe(s.resolved());
+    const first = s.resolved();
+    s.toggle();
+    expect(s.resolved()).toBe(first === "dark" ? "light" : "dark");
+  });
+
+  it("resolves explicit preferences as-is", () => {
+    const s = service();
+    s.set("dark");
+
+    expect(s.resolved()).toBe("dark");
   });
 });

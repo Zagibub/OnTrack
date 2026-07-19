@@ -65,8 +65,9 @@ None.
 - **AC-9** [unit] Given `ThemeService`, when the user selects dark, then `<html>` gets
   `data-theme="dark"` and the choice is persisted; when the user selects system, the
   attribute is removed; a fresh service restores the persisted choice.
-- **AC-10** [unit] Given `ot-theme-toggle`, when clicked, then it cycles
-  system → light → dark → system.
+- **AC-10** [unit] Given `ot-theme-toggle`, when clicked, then the theme switches to
+  the opposite of the currently resolved theme (sun/moon icon only; "system" stays the
+  default until the user first toggles).
 
 ## 7. Edge Cases & Error Handling
 - BarChart with empty data renders an empty-state SVG, not a crash.

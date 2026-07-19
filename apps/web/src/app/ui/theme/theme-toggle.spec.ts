@@ -9,26 +9,23 @@ describe("ThemeToggle", () => {
   });
 
   // AC-10 (002-ui-foundation)
-  it("cycles the theme preference on click", async () => {
+  it("switches to the opposite theme on click", async () => {
     const fixture = TestBed.createComponent(ThemeToggle);
     await fixture.whenStable();
     const service = TestBed.inject(ThemeService);
-    const button = (fixture.nativeElement as HTMLElement).querySelector("button");
+    const before = service.resolved();
 
-    expect(service.preference()).toBe("system");
-    button?.click();
-    expect(service.preference()).toBe("light");
-    button?.click();
-    expect(service.preference()).toBe("dark");
-    button?.click();
-    expect(service.preference()).toBe("system");
+    (fixture.nativeElement as HTMLElement).querySelector("button")?.click();
+
+    expect(service.resolved()).toBe(before === "dark" ? "light" : "dark");
   });
 
-  it("shows the current preference", async () => {
+  it("offers the opposite theme in its label", async () => {
     const fixture = TestBed.createComponent(ThemeToggle);
     TestBed.inject(ThemeService).set("dark");
     await fixture.whenStable();
 
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain("Theme: dark");
+    const button = (fixture.nativeElement as HTMLElement).querySelector("button");
+    expect(button?.getAttribute("aria-label")).toBe("Switch to light theme");
   });
 });

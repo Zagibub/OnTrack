@@ -29,9 +29,14 @@ export class ThemeService {
     }
   }
 
-  cycle(): void {
-    const order: ThemePreference[] = ["system", "light", "dark"];
-    const index = order.indexOf(this.current());
-    this.set(order[(index + 1) % order.length] ?? "system");
+  /** The theme actually in effect: explicit choice, or the OS preference for "system". */
+  resolved(): "light" | "dark" {
+    const preference = this.current();
+    if (preference !== "system") return preference;
+    return globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  toggle(): void {
+    this.set(this.resolved() === "dark" ? "light" : "dark");
   }
 }

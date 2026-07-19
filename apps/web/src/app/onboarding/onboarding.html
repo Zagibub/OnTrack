@@ -1,0 +1,30 @@
+<div class="mx-auto flex min-h-dvh max-w-md flex-col p-6">
+  <header class="flex justify-end">
+    <ot-theme-toggle />
+  </header>
+
+  <main class="flex flex-1 flex-col items-center justify-center text-center">
+    <img src="icon.svg" alt="OnTrack logo" class="mb-4 h-20 w-20" />
+    <h1 class="text-3xl font-bold">OnTrack</h1>
+    <p class="mt-1 text-ink-muted">Track kcal in and out</p>
+
+    <ul class="mt-8 space-y-3 text-left">
+      <li class="flex items-center gap-3">
+        <ot-chevron [size]="18" class="shrink-0 text-primary" />
+        <span>Log meals in seconds — search, barcode or photo</span>
+      </li>
+      <li class="flex items-center gap-3">
+        <ot-chevron [size]="18" class="shrink-0 text-primary" />
+        <span>See your daily kcal balance at a glance</span>
+      </li>
+      <li class="flex items-center gap-3">
+        <ot-chevron [size]="18" class="shrink-0 text-primary" />
+        <span>Track workouts and weight over time</span>
+      </li>
+    </ul>
+  </main>
+
+  <footer class="mt-8">
+    <ot-button (click)="start()">Get started</ot-button>
+  </footer>
+</div>
