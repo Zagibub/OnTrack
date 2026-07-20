@@ -15,6 +15,20 @@
       "when": 1784536155505,
       "tag": "0001_profiles_weight",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784558038857,
+      "tag": "0002_meal_entries",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784574781694,
+      "tag": "0003_photo",
+      "breakpoints": true
     }
   ]
 }

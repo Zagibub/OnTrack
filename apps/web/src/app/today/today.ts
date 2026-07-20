@@ -1,8 +1,9 @@
 import { Component, computed, inject, type OnDestroy, signal } from "@angular/core";
-import { Router } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { TranslocoDirective } from "@jsverse/transloco";
-import { computeDayBalance, type DayPoint } from "@ontrack/shared";
+import { computeDayBalance, type DayPoint, intakeByHour, type MealEntry } from "@ontrack/shared";
 import { AuthService } from "../auth/auth";
+import { MealService } from "../meals/meal";
 import { ProfileService } from "../profile/profile";
 import { ThemeToggle } from "../ui/theme/theme-toggle";
 import { BalanceChart } from "./balance-chart";
@@ -20,7 +21,7 @@ interface TodayView {
 
 @Component({
   selector: "ot-today",
-  imports: [TranslocoDirective, BalanceChart, ThemeToggle],
+  imports: [TranslocoDirective, BalanceChart, ThemeToggle, RouterLink],
   template: `
     <main class="mx-auto max-w-md p-6" *transloco="let t">
       <header class="flex items-center justify-between">
@@ -79,6 +80,15 @@ interface TodayView {
         </div>
       }
 
+      <a
+        routerLink="/add"
+        data-testid="add-intake"
+        [attr.aria-label]="t('today.addIntake')"
+        class="fixed bottom-6 left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-primary text-3xl leading-none text-on-primary shadow-card active:bg-primary-strong"
+      >
+        +
+      </a>
+
       <button
         type="button"
         (click)="signOut()"
@@ -93,24 +103,32 @@ export class Today implements OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly profiles = inject(ProfileService);
+  private readonly meals = inject(MealService);
 
   /** The reference "now", re-stamped each minute so the balance visibly burns down. */
   protected readonly now = signal(new Date());
   private readonly tick = setInterval(() => this.now.set(new Date()), 60_000);
 
+  /** Today's logged meals (007). Empty until loaded / when logging fails. */
+  protected readonly entries = signal<MealEntry[]>([]);
+
   protected readonly detailed = signal(this.readDetailed());
+
+  constructor() {
+    void this.loadEntries();
+  }
 
   protected readonly view = computed<TodayView | null>(() => {
     const profile = this.profiles.profile();
     if (!profile) return null;
 
     const now = this.now();
-    // Meal/exercise logging doesn't exist yet, so intake/activity are empty — the
-    // same aggregation takes real events once logging lands (SPEC 006 §1).
+    // Activity (exercise) logging isn't built yet, so only intake is real for now.
     const { points, totals } = computeDayBalance({
       currentHour: now.getHours(),
       currentMinute: now.getMinutes(),
       tdee: profile.tdee,
+      intakeByHour: intakeByHour(this.entries()),
     });
 
     return {
@@ -124,6 +142,14 @@ export class Today implements OnDestroy {
 
   ngOnDestroy(): void {
     clearInterval(this.tick);
+  }
+
+  private async loadEntries(): Promise<void> {
+    try {
+      this.entries.set(await this.meals.listForDay(this.now()));
+    } catch {
+      this.entries.set([]); // A dashboard without today's meals still renders the baseline.
+    }
   }
 
   protected toggleDetailed(): void {

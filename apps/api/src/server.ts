@@ -2,7 +2,9 @@ import { buildApp } from "./app.js";
 import { createAuth } from "./auth/auth.js";
 import { createDb, migrateDb } from "./db/index.js";
 import { loadEnv } from "./env.js";
+import { createOpenFoodFactsSearch } from "./food-search.js";
 import { ConsoleMailer, ResendMailer } from "./mailer.js";
+import { createOpenRouterVision } from "./vision.js";
 
 const env = loadEnv();
 
@@ -14,7 +16,16 @@ const mailer = env.resendApiKey
   : new ConsoleMailer();
 
 const auth = createAuth(db, mailer, env);
-const app = buildApp({ auth, db });
+const vision = env.openRouterApiKey
+  ? createOpenRouterVision(env.openRouterApiKey, env.openRouterVisionModel)
+  : undefined;
+const app = buildApp({
+  auth,
+  db,
+  foodSearch: createOpenFoodFactsSearch(),
+  vision,
+  photoDailyQuota: env.photoDailyQuota,
+});
 
 app.listen({ port: env.port, host: "0.0.0.0" }).catch((err) => {
   app.log.error(err);

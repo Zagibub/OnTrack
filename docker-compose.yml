@@ -29,6 +29,9 @@ services:
       APP_URL: ${APP_URL:?set in .env}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-OnTrack <onboarding@resend.dev>}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_VISION_MODEL: ${OPENROUTER_VISION_MODEL:-google/gemini-2.5-flash}
+      PHOTO_DAILY_QUOTA: ${PHOTO_DAILY_QUOTA:-20}
     depends_on:
       postgres:
         condition: service_healthy

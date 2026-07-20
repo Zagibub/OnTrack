@@ -30,6 +30,9 @@ const TEST_ENV: Env = {
   resendApiKey: null,
   emailFrom: "test@example.com",
   migrationsDir: "./drizzle",
+  openRouterApiKey: null,
+  openRouterVisionModel: "test-model",
+  photoDailyQuota: 20,
 };
 
 let container: StartedPostgreSqlContainer;
