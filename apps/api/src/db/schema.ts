@@ -1,4 +1,13 @@
-import { boolean, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  date,
+  integer,
+  pgTable,
+  real,
+  serial,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 // better-auth core tables (field names must match better-auth's expected model fields)
 
@@ -53,6 +62,31 @@ export const verification = pgTable("verification", {
 });
 
 // OnTrack tables
+
+export const profiles = pgTable("profiles", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  birthYear: integer("birth_year").notNull(),
+  sex: text("sex").notNull(),
+  heightCm: integer("height_cm").notNull(),
+  activityLevel: text("activity_level").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const weightEntries = pgTable("weight_entries", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  date: date("date").notNull(),
+  weightKg: real("weight_kg").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type ProfileRow = typeof profiles.$inferSelect;
+export type WeightEntryRow = typeof weightEntries.$inferSelect;
 
 export const emailLog = pgTable("email_log", {
   id: serial("id").primaryKey(),

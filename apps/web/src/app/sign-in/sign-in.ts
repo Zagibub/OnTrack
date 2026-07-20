@@ -1,5 +1,6 @@
 import { Component, inject, signal } from "@angular/core";
 import { FormControl, ReactiveFormsModule, Validators } from "@angular/forms";
+import { TranslocoDirective, TranslocoService } from "@jsverse/transloco";
 import { AuthService, MagicLinkError } from "../auth/auth";
 import { Button } from "../ui/button/button";
 import { TextField } from "../ui/text-field/text-field";
@@ -9,11 +10,12 @@ type SignInState = "idle" | "sending" | "sent";
 
 @Component({
   selector: "ot-sign-in",
-  imports: [Button, TextField, ThemeToggle, ReactiveFormsModule],
+  imports: [Button, TextField, ThemeToggle, ReactiveFormsModule, TranslocoDirective],
   templateUrl: "./sign-in.html",
 })
 export class SignIn {
   private readonly auth = inject(AuthService);
+  private readonly transloco = inject(TranslocoService);
 
   protected readonly email = new FormControl("", {
     nonNullable: true,
@@ -24,7 +26,7 @@ export class SignIn {
 
   protected async submit(): Promise<void> {
     if (this.email.invalid || this.state() === "sending") {
-      this.error.set("Enter a valid email address");
+      this.error.set(this.transloco.translate("signIn.invalidEmail"));
       return;
     }
     this.state.set("sending");
@@ -35,7 +37,9 @@ export class SignIn {
     } catch (err) {
       this.state.set("idle");
       this.error.set(
-        err instanceof MagicLinkError ? err.message : "Something went wrong. Try again.",
+        err instanceof MagicLinkError
+          ? err.message
+          : this.transloco.translate("signIn.genericError"),
       );
     }
   }

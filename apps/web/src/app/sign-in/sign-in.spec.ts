@@ -1,5 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { AuthService, MagicLinkError } from "../auth/auth";
+import { provideTranslocoTesting } from "../i18n/testing";
 import { SignIn } from "./sign-in";
 
 describe("SignIn", () => {
@@ -8,7 +9,7 @@ describe("SignIn", () => {
   beforeEach(async () => {
     requestMagicLink = vi.fn().mockResolvedValue(undefined);
     await TestBed.configureTestingModule({
-      imports: [SignIn],
+      imports: [SignIn, provideTranslocoTesting()],
       providers: [{ provide: AuthService, useValue: { requestMagicLink } }],
     }).compileComponents();
   });

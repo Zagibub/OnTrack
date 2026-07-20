@@ -8,6 +8,8 @@ export default defineConfig({
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL: "http://localhost:4173",
+    // Pin locale so i18n resolves to English for text assertions.
+    locale: "en-US",
   },
   projects: [
     {
@@ -21,6 +23,7 @@ export default defineConfig({
       url: "http://localhost:3000/api/v1/health",
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+      env: { APP_URL: "http://localhost:4173" },
     },
     {
       command: "pnpm --filter @ontrack/web build && pnpm --filter @ontrack/web serve:dist",

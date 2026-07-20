@@ -1,11 +1,12 @@
 import { TestBed } from "@angular/core/testing";
 import { provideRouter, Router } from "@angular/router";
+import { provideTranslocoTesting } from "../i18n/testing";
 import { Onboarding } from "./onboarding";
 
 describe("Onboarding", () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Onboarding],
+      imports: [Onboarding, provideTranslocoTesting()],
       providers: [provideRouter([])],
     }).compileComponents();
   });

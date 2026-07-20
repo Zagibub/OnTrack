@@ -1,0 +1,162 @@
+<div class="mx-auto flex min-h-dvh max-w-md flex-col p-6" *transloco="let t">
+  <div class="mb-10 flex justify-center gap-2" aria-hidden="true">
+    @for (i of dots; track i) {
+      <span
+        class="h-2 w-2 rounded-full transition-colors"
+        [class]="i <= stepIndex() ? 'bg-primary' : 'bg-ink-muted/30'"
+      ></span>
+    }
+  </div>
+
+  <main class="flex flex-1 flex-col">
+    @switch (currentStep()) {
+      @case ("birthYear") {
+        <div data-testid="step-birthYear">
+          <h1 class="text-2xl font-bold">{{ t("wizard.birthYearTitle") }}</h1>
+          <p class="mt-1 text-ink-muted">{{ t("wizard.birthYearHint") }}</p>
+          <label class="mt-6 block">
+            <span class="mb-1 block text-sm font-medium text-ink-muted">
+              {{ t("wizard.birthYearLabel") }}
+            </span>
+            <select
+              [formControl]="form.controls.birthYear"
+              [attr.aria-label]="t('wizard.birthYearLabel')"
+              class="min-h-11 w-full rounded-xl border border-ink-muted/30 bg-surface px-3 text-base focus:border-primary focus:outline-none"
+            >
+              <option value="" disabled>{{ t("wizard.birthYearPlaceholder") }}</option>
+              @for (year of years; track year) {
+                <option [value]="year">{{ year }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      }
+      @case ("sex") {
+        <div data-testid="step-sex">
+          <h1 class="text-2xl font-bold">{{ t("wizard.sexTitle") }}</h1>
+          <p class="mt-1 text-ink-muted">{{ t("wizard.sexHint") }}</p>
+          <div class="mt-6 space-y-3">
+            @for (opt of sexOptions; track opt.value) {
+              <ot-button
+                [variant]="selected('sex') === opt.value ? 'primary' : 'secondary'"
+                (click)="choose('sex', opt.value)"
+              >
+                {{ t(opt.labelKey) }}
+              </ot-button>
+            }
+          </div>
+        </div>
+      }
+      @case ("height") {
+        <div data-testid="step-height">
+          <h1 class="text-2xl font-bold">{{ t("wizard.heightTitle") }}</h1>
+          <ot-text-field
+            class="mt-6"
+            kind="number"
+            [label]="t('wizard.heightLabel') + ' (' + t('wizard.heightUnit') + ')'"
+            [placeholder]="t('wizard.heightPlaceholder')"
+            [formControl]="form.controls.heightCm"
+            [error]="heightInvalid() ? t('wizard.heightError', { min: heightMin, max: heightMax }) : null"
+          />
+        </div>
+      }
+      @case ("weight") {
+        <div data-testid="step-weight">
+          <h1 class="text-2xl font-bold">{{ t("wizard.weightTitle") }}</h1>
+          <ot-text-field
+            class="mt-6"
+            kind="number"
+            [label]="t('wizard.weightLabel') + ' (' + t('wizard.weightUnit') + ')'"
+            [placeholder]="t('wizard.weightPlaceholder')"
+            [formControl]="form.controls.weightKg"
+            [error]="weightInvalid() ? t('wizard.weightError', { min: weightMin, max: weightMax }) : null"
+          />
+        </div>
+      }
+      @case ("activity") {
+        <div data-testid="step-activity">
+          <h1 class="text-2xl font-bold">{{ t("wizard.activityTitle") }}</h1>
+          <p class="mt-1 text-ink-muted">{{ t("wizard.activityHint") }}</p>
+          <div class="mt-6 space-y-3">
+            @for (opt of activityOptions; track opt.value) {
+              <ot-button
+                [variant]="selected('activityLevel') === opt.value ? 'primary' : 'secondary'"
+                (click)="choose('activityLevel', opt.value)"
+              >
+                {{ t(opt.labelKey) }}
+              </ot-button>
+            }
+          </div>
+        </div>
+      }
+    }
+
+    @if (onSummary()) {
+      <div data-testid="step-summary">
+        <h1 class="text-2xl font-bold">{{ t("wizard.summaryTitle") }}</h1>
+        <p class="mt-1 text-ink-muted">{{ t("wizard.summaryHint") }}</p>
+
+        <div class="mt-6 space-y-3">
+          <ot-card>
+            <button type="button" class="flex w-full justify-between" (click)="edit('birthYear')">
+              <span class="text-ink-muted">{{ t("wizard.rowBirthYear") }}</span>
+              <span class="font-medium">{{ selected("birthYear") }}</span>
+            </button>
+          </ot-card>
+          <ot-card>
+            <button type="button" class="flex w-full justify-between" (click)="edit('sex')">
+              <span class="text-ink-muted">{{ t("wizard.rowSex") }}</span>
+              <span class="font-medium">{{ t(sexLabelKey(selected("sex"))) }}</span>
+            </button>
+          </ot-card>
+          <ot-card>
+            <button type="button" class="flex w-full justify-between" (click)="edit('height')">
+              <span class="text-ink-muted">{{ t("wizard.rowHeight") }}</span>
+              <span class="font-medium">{{ selected("heightCm") }} {{ t("wizard.heightUnit") }}</span>
+            </button>
+          </ot-card>
+          <ot-card>
+            <button type="button" class="flex w-full justify-between" (click)="edit('weight')">
+              <span class="text-ink-muted">{{ t("wizard.rowWeight") }}</span>
+              <span class="font-medium">{{ selected("weightKg") }} {{ t("wizard.weightUnit") }}</span>
+            </button>
+          </ot-card>
+          <ot-card>
+            <button type="button" class="flex w-full justify-between" (click)="edit('activity')">
+              <span class="text-ink-muted">{{ t("wizard.rowActivity") }}</span>
+              <span class="font-medium text-right">{{ t(activityLabelKey(selected("activityLevel"))) }}</span>
+            </button>
+          </ot-card>
+        </div>
+
+        <div class="mt-6 rounded-card bg-primary/10 p-4 text-center">
+          <p class="text-sm text-ink-muted">{{ t("wizard.baselineLabel") }}</p>
+          <p class="text-3xl font-bold text-primary">
+            ~<span data-testid="tdee-value">{{ tdee() }}</span> {{ t("wizard.baselineUnit") }}
+          </p>
+        </div>
+
+        @if (error()) {
+          <p class="mt-4 text-center text-sm text-danger">{{ error() }}</p>
+        }
+      </div>
+    }
+  </main>
+
+  <footer class="mt-8 flex items-center gap-3">
+    @if (stepIndex() > 0 && !onSummary()) {
+      <button type="button" class="text-sm text-ink-muted underline" (click)="back()">
+        {{ t("common.back") }}
+      </button>
+    }
+    <div class="flex-1">
+      @if (onSummary()) {
+        <ot-button (click)="done()" [disabled]="!answers() || saving()">
+          {{ saving() ? t("common.saving") : t("common.done") }}
+        </ot-button>
+      } @else if (currentStep() === "birthYear" || currentStep() === "height" || currentStep() === "weight") {
+        <ot-button (click)="next()" [disabled]="!stepValid()">{{ t("common.next") }}</ot-button>
+      }
+    </div>
+  </footer>
+</div>

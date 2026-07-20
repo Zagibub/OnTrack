@@ -14,7 +14,7 @@ const mailer = env.resendApiKey
   : new ConsoleMailer();
 
 const auth = createAuth(db, mailer, env);
-const app = buildApp({ auth });
+const app = buildApp({ auth, db });
 
 app.listen({ port: env.port, host: "0.0.0.0" }).catch((err) => {
   app.log.error(err);

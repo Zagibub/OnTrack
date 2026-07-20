@@ -1,4 +1,4 @@
-<div class="mx-auto flex min-h-dvh max-w-md flex-col p-6">
+<div class="mx-auto flex min-h-dvh max-w-md flex-col p-6" *transloco="let t">
   <header class="flex justify-end">
     <ot-theme-toggle />
   </header>
@@ -8,28 +8,25 @@
 
     @if (state() === "sent") {
       <div class="text-center" data-testid="sent-state">
-        <h1 class="text-2xl font-bold">Check your inbox</h1>
-        <p class="mt-2 text-ink-muted">
-          We sent a sign-in link to <strong>{{ email.value }}</strong
-          >. It's valid for 15 minutes.
-        </p>
+        <h1 class="text-2xl font-bold">{{ t("signIn.sentTitle") }}</h1>
+        <p class="mt-2 text-ink-muted">{{ t("signIn.sentBody", { email: email.value }) }}</p>
         <button type="button" (click)="reset()" class="mt-6 text-sm text-ink-muted underline">
-          Use a different address
+          {{ t("signIn.useDifferent") }}
         </button>
       </div>
     } @else {
-      <h1 class="text-center text-2xl font-bold">Sign in</h1>
-      <p class="mt-1 text-center text-ink-muted">No password needed — we'll email you a link.</p>
+      <h1 class="text-center text-2xl font-bold">{{ t("signIn.title") }}</h1>
+      <p class="mt-1 text-center text-ink-muted">{{ t("signIn.subtitle") }}</p>
 
       <form class="mt-8 space-y-3" (submit)="$event.preventDefault(); submit()">
         <ot-text-field
-          label="Email"
-          placeholder="you@example.com"
+          [label]="t('signIn.emailLabel')"
+          [placeholder]="t('signIn.emailPlaceholder')"
           [error]="error()"
           [formControl]="email"
         />
         <ot-button type="submit" [disabled]="state() === 'sending'">
-          {{ state() === "sending" ? "Sending…" : "Send me a link" }}
+          {{ state() === "sending" ? t("signIn.sending") : t("signIn.submit") }}
         </ot-button>
       </form>
     }
