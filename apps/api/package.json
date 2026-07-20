@@ -4,19 +4,24 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "start:e2e": "tsx src/server.ts",
-    "build": "esbuild src/server.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/server.cjs",
+    "dev": "NODE_ENV=development tsx watch src/server.ts",
+    "start:e2e": "NODE_ENV=development tsx src/server.ts",
+    "build": "esbuild src/server.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/server.mjs --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@ontrack/shared": "workspace:*",
+    "better-auth": "^1.6.23",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^5.10.0",
+    "postgres": "^3.4.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^12.0.4",
     "@types/node": "^26.1.1",
+    "drizzle-kit": "^0.31.10",
     "esbuild": "^0.28.1",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2",

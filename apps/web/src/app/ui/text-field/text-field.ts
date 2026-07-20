@@ -4,6 +4,7 @@ import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
 let nextId = 0;
 
 @Component({
+  styles: [":host{display:block}"],
   selector: "ot-text-field",
   providers: [
     {
@@ -29,9 +30,9 @@ let nextId = 0;
         class="min-h-11 w-full rounded-xl border border-ink-muted/30 bg-surface px-3 text-base focus:border-primary focus:outline-none aria-invalid:border-danger"
       />
     </label>
-    @if (error()) {
-      <p [id]="id + '-error'" class="mt-1 text-sm text-danger">{{ error() }}</p>
-    }
+    <p [id]="id + '-error'" class="mt-1 min-h-5 text-sm text-danger" aria-live="polite">
+      {{ error() ?? "" }}
+    </p>
   `,
 })
 export class TextField implements ControlValueAccessor {

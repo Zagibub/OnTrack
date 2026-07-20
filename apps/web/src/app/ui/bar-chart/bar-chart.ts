@@ -6,6 +6,7 @@ const VIEW_HEIGHT = 120;
 const LABEL_HEIGHT = 16;
 
 @Component({
+  styles: [":host{display:block}"],
   selector: "ot-bar-chart",
   template: `
     <svg

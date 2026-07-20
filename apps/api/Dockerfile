@@ -13,7 +13,8 @@ RUN pnpm --filter @ontrack/api build
 FROM node:22-alpine
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=build /repo/apps/api/dist/server.cjs ./server.cjs
+COPY --from=build /repo/apps/api/dist/server.mjs ./server.mjs
+COPY --from=build /repo/apps/api/drizzle ./drizzle
 EXPOSE 3000
 USER node
-CMD ["node", "server.cjs"]
+CMD ["node", "server.mjs"]

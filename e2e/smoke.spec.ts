@@ -8,14 +8,33 @@ test("shows the onboarding screen on a mobile viewport", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Get started" })).toBeVisible();
 });
 
-// AC-5 (003-onboarding)
-test("Get started leads to the dashboard placeholder", async ({ page }) => {
+// AC-5 (003-onboarding), amended by 004: sign-in comes first
+test("Get started leads to the sign-in screen", async ({ page }) => {
   await page.goto("/");
 
   await page.getByRole("button", { name: "Get started" }).click();
 
-  await expect(page).toHaveURL(/\/today$/);
-  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+  await expect(page).toHaveURL(/\/sign-in$/);
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+});
+
+// AC-7 (004)
+test("requesting a magic link shows the confirmation state", async ({ page }) => {
+  await page.goto("/sign-in");
+
+  const email = `e2e-${Date.now()}@example.com`;
+  await page.getByRole("textbox", { name: "Email" }).fill(email);
+  await page.getByRole("button", { name: "Send me a link" }).click();
+
+  await expect(page.getByTestId("sent-state")).toContainText("Check your inbox");
+  await expect(page.getByTestId("sent-state")).toContainText(email);
+});
+
+// AC-5 (004): guard
+test("visiting /today signed out redirects to sign-in", async ({ page }) => {
+  await page.goto("/today");
+
+  await expect(page).toHaveURL(/\/sign-in$/);
 });
 
 // AC-7 (001-project-skeleton)

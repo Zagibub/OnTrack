@@ -1,0 +1,37 @@
+<div class="mx-auto flex min-h-dvh max-w-md flex-col p-6">
+  <header class="flex justify-end">
+    <ot-theme-toggle />
+  </header>
+
+  <main class="flex flex-1 flex-col justify-center">
+    <img src="icon.svg" alt="OnTrack logo" class="mx-auto mb-4 h-16 w-16" />
+
+    @if (state() === "sent") {
+      <div class="text-center" data-testid="sent-state">
+        <h1 class="text-2xl font-bold">Check your inbox</h1>
+        <p class="mt-2 text-ink-muted">
+          We sent a sign-in link to <strong>{{ email.value }}</strong
+          >. It's valid for 15 minutes.
+        </p>
+        <button type="button" (click)="reset()" class="mt-6 text-sm text-ink-muted underline">
+          Use a different address
+        </button>
+      </div>
+    } @else {
+      <h1 class="text-center text-2xl font-bold">Sign in</h1>
+      <p class="mt-1 text-center text-ink-muted">No password needed — we'll email you a link.</p>
+
+      <form class="mt-8 space-y-3" (submit)="$event.preventDefault(); submit()">
+        <ot-text-field
+          label="Email"
+          placeholder="you@example.com"
+          [error]="error()"
+          [formControl]="email"
+        />
+        <ot-button type="submit" [disabled]="state() === 'sending'">
+          {{ state() === "sending" ? "Sending…" : "Send me a link" }}
+        </ot-button>
+      </form>
+    }
+  </main>
+</div>

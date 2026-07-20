@@ -9,6 +9,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 };
 
 @Component({
+  styles: [":host{display:block}"],
   selector: "ot-button",
   template: `
     <button

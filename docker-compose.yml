@@ -6,6 +6,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-ontrack}
       POSTGRES_USER: ${POSTGRES_USER:-ontrack}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -23,6 +25,10 @@ services:
       PORT: 3000
       APP_VERSION: ${APP_VERSION:-dev}
       DATABASE_URL: postgres://${POSTGRES_USER:-ontrack}:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/${POSTGRES_DB:-ontrack}
+      AUTH_SECRET: ${AUTH_SECRET:?set in .env}
+      APP_URL: ${APP_URL:?set in .env}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-OnTrack <onboarding@resend.dev>}
     depends_on:
       postgres:
         condition: service_healthy

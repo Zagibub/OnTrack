@@ -34,7 +34,7 @@ describe("Onboarding", () => {
     expect((fixture.nativeElement as HTMLElement).querySelector("ot-theme-toggle")).toBeTruthy();
   });
 
-  it("navigates to /today on Get started", async () => {
+  it("navigates to /sign-in on Get started", async () => {
     const fixture = await render();
     const navigate = vi.spyOn(TestBed.inject(Router), "navigateByUrl");
 
@@ -42,6 +42,6 @@ describe("Onboarding", () => {
     const cta = Array.from(buttons).find((b) => b.textContent?.includes("Get started"));
     cta?.click();
 
-    expect(navigate).toHaveBeenCalledWith("/today");
+    expect(navigate).toHaveBeenCalledWith("/sign-in");
   });
 });

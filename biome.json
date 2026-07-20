@@ -23,6 +23,11 @@
       "preset": "recommended"
     }
   },
+  "html": {
+    "parser": {
+      "interpolation": true
+    }
+  },
   "css": {
     "parser": {
       "tailwindDirectives": true

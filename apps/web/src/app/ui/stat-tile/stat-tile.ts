@@ -1,6 +1,7 @@
 import { Component, input } from "@angular/core";
 
 @Component({
+  styles: [":host{display:block}"],
   selector: "ot-stat-tile",
   template: `
     <div class="rounded-card bg-surface p-4 text-center shadow-card">

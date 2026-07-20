@@ -13,6 +13,6 @@ export class Onboarding {
   private readonly router = inject(Router);
 
   protected start(): void {
-    this.router.navigateByUrl("/today");
+    this.router.navigateByUrl("/sign-in");
   }
 }

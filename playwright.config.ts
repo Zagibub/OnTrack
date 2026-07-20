@@ -17,10 +17,10 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "pnpm --filter @ontrack/api start:e2e",
+      command: "docker compose up -d postgres && pnpm --filter @ontrack/api start:e2e",
       url: "http://localhost:3000/api/v1/health",
       reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
+      timeout: 120_000,
     },
     {
       command: "pnpm --filter @ontrack/web build && pnpm --filter @ontrack/web serve:dist",
