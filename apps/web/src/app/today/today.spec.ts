@@ -16,6 +16,7 @@ const PROFILE: Profile = {
   activityLevel: "moderate",
   bmr: 1780,
   tdee: 2400, // → baseline 100 kcal/h
+  photoConsent: true,
   createdAt: new Date(2026, 6, 19, 10, 0).toISOString(),
   updatedAt: new Date(2026, 6, 19, 10, 0).toISOString(),
 };

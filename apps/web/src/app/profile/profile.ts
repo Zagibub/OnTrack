@@ -21,6 +21,9 @@ export class ProfileService {
   /** Daily TDEE baseline, derived from the profile. Null until a profile exists. */
   readonly baseline = computed(() => this.profile()?.tdee ?? null);
 
+  /** Whether the user has accepted the photo content disclaimer (SPEC §3.6). */
+  readonly photoConsent = computed(() => this.profile()?.photoConsent ?? false);
+
   async load(): Promise<Profile | null> {
     try {
       const res = await firstValueFrom(this.http.get<Profile>("/api/v1/profile"));
@@ -36,5 +39,12 @@ export class ProfileService {
     const res = await firstValueFrom(this.http.put<Profile>("/api/v1/profile", body));
     this.profile.set(res);
     return res;
+  }
+
+  /** Record acceptance of the photo content disclaimer and reflect it locally. */
+  async acceptPhotoConsent(): Promise<void> {
+    await firstValueFrom(this.http.post("/api/v1/photo/consent", {}));
+    const current = this.profile();
+    if (current) this.profile.set({ ...current, photoConsent: true });
   }
 }

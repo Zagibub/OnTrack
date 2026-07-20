@@ -71,6 +71,8 @@ export const profiles = pgTable("profiles", {
   sex: text("sex").notNull(),
   heightCm: integer("height_cm").notNull(),
   activityLevel: text("activity_level").notNull(),
+  // Set when the user accepts the photo content disclaimer (SPEC §3.6); null = not yet.
+  photoConsentAt: timestamp("photo_consent_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -85,8 +87,45 @@ export const weightEntries = pgTable("weight_entries", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// A retained meal photo (small compressed thumbnail); the analysis-grade original is
+// discarded client-side after analysis (SPEC §3.6). One photo → many meal_entries.
+export const mealPhotos = pgTable("meal_photos", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  thumbnail: text("thumbnail").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const mealEntries = pgTable("meal_entries", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  kcal: integer("kcal").notNull(),
+  source: text("source").notNull(),
+  loggedAt: timestamp("logged_at", { withTimezone: true }).notNull(),
+  // Set for photo-sourced entries; the shared thumbnail lives on meal_photos.
+  photoId: integer("photo_id").references(() => mealPhotos.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// One row per successful vision analysis — powers the per-user daily quota (SPEC §3.6).
+export const photoAnalyses = pgTable("photo_analyses", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export type ProfileRow = typeof profiles.$inferSelect;
 export type WeightEntryRow = typeof weightEntries.$inferSelect;
+export type MealEntryRow = typeof mealEntries.$inferSelect;
+export type MealPhotoRow = typeof mealPhotos.$inferSelect;
+export type PhotoAnalysisRow = typeof photoAnalyses.$inferSelect;
 
 export const emailLog = pgTable("email_log", {
   id: serial("id").primaryKey(),

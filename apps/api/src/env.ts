@@ -8,6 +8,11 @@ export interface Env {
   resendApiKey: string | null;
   emailFrom: string;
   migrationsDir: string;
+  /** OpenRouter API key for vision (photo) analysis; null disables the photo endpoints. */
+  openRouterApiKey: string | null;
+  openRouterVisionModel: string;
+  /** Max successful photo analyses per user per calendar day (SPEC §3.6 cost control). */
+  photoDailyQuota: number;
 }
 
 export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
@@ -33,6 +38,9 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
     resendApiKey: env.RESEND_API_KEY ?? null,
     emailFrom: env.EMAIL_FROM ?? "OnTrack <onboarding@resend.dev>",
     migrationsDir: env.MIGRATIONS_DIR ?? "./drizzle",
+    openRouterApiKey: env.OPENROUTER_API_KEY ?? null,
+    openRouterVisionModel: env.OPENROUTER_VISION_MODEL ?? "google/gemini-2.5-flash",
+    photoDailyQuota: Number(env.PHOTO_DAILY_QUOTA ?? 20),
   };
 }
 

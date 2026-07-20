@@ -94,6 +94,8 @@ export const ProfileSchema = z.object({
   activityLevel: z.enum(ACTIVITY_VALUES),
   bmr: z.number(),
   tdee: z.number(),
+  /** Whether the user has accepted the photo content disclaimer (SPEC §3.6, 008). */
+  photoConsent: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
