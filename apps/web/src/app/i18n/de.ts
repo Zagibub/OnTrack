@@ -30,7 +30,15 @@ export const de: AppTranslation = {
   },
   today: {
     title: "Heute",
-    comingSoon: "Dein Dashboard kommt bald.",
+    intake: "Zufuhr",
+    activity: "Aktivität",
+    net: "Nettobilanz",
+    deficit: "Defizit",
+    surplus: "Überschuss",
+    kcal: "kcal",
+    hours: "Stunden",
+    detailedView: "Detailansicht",
+    focusedView: "Fokusansicht",
     signOut: "Abmelden",
   },
   wizard: {

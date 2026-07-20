@@ -54,6 +54,7 @@ async function loadProfile(db: Db, userId: string): Promise<Profile | null> {
     activityLevel: row.activityLevel as ActivityLevel,
     bmr: Math.round(calculateBmr(bmrInput)),
     tdee: calculateTdee({ ...bmrInput, activityLevel: row.activityLevel as ActivityLevel }),
+    createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }

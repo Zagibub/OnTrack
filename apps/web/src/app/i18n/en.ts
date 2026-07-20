@@ -28,7 +28,15 @@ export const en = {
   },
   today: {
     title: "Today",
-    comingSoon: "Your dashboard is coming soon.",
+    intake: "Intake",
+    activity: "Activity",
+    net: "Net balance",
+    deficit: "deficit",
+    surplus: "surplus",
+    kcal: "kcal",
+    hours: "Hours",
+    detailedView: "Detailed view",
+    focusedView: "Focused view",
     signOut: "Sign out",
   },
   wizard: {

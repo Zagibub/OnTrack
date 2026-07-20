@@ -1,26 +1,5 @@
-import { execSync } from "node:child_process";
-import { expect, type Page, test } from "@playwright/test";
-
-/**
- * Signs a fresh user in through the real magic-link flow: request the link, then
- * read the dev token straight from Postgres and hit the verify endpoint (the same
- * origin as the app, so the session cookie lands where the SPA can use it).
- */
-async function signIn(page: Page, email: string): Promise<void> {
-  await page.goto("/sign-in");
-  await page.getByRole("textbox", { name: "Email" }).fill(email);
-  await page.getByRole("button", { name: "Send me a link" }).click();
-  await expect(page.getByTestId("sent-state")).toContainText("Check your inbox");
-
-  const token = execSync(
-    `docker compose exec -T postgres psql -U ontrack -d ontrack -tA -c ` +
-      `"SELECT identifier FROM verification WHERE value LIKE '%${email}%' ORDER BY created_at DESC LIMIT 1"`,
-    { encoding: "utf8" },
-  ).trim();
-  if (!token) throw new Error(`no verification token found for ${email}`);
-
-  await page.goto(`/api/auth/magic-link/verify?token=${token}&callbackURL=/today`);
-}
+import { expect, test } from "@playwright/test";
+import { fillWizard, signIn, uniqueEmail } from "./helpers";
 
 // AC-6 (001-project-skeleton), amended by 003: no API status in the UI
 test("shows the onboarding screen on a mobile viewport", async ({ page }) => {
@@ -68,7 +47,7 @@ test("visiting /setup signed out redirects to sign-in", async ({ page }) => {
 
 // AC-7 (005): fresh user → wizard → /today, and reload stays on /today
 test("a new user completes the setup wizard and lands on today", async ({ page }) => {
-  await signIn(page, `wizard-${Date.now()}@example.com`);
+  await signIn(page, uniqueEmail("wizard"));
 
   // No profile yet → routed into the wizard.
   await expect(page).toHaveURL(/\/setup$/);
@@ -94,6 +73,28 @@ test("a new user completes the setup wizard and lands on today", async ({ page }
   await page.reload();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+});
+
+// AC-7 (006): a signed-in user with a profile sees the day energy-balance chart.
+test("today shows the day energy-balance chart", async ({ page }) => {
+  await signIn(page, uniqueEmail("balance"));
+  await expect(page).toHaveURL(/\/setup$/);
+  await fillWizard(page);
+  await page.getByRole("button", { name: "Done" }).click();
+
+  await expect(page).toHaveURL(/\/today$/);
+
+  // The chart canvas renders, with intake/net/activity headlines (a deficit so far).
+  await expect(page.getByTestId("balance-chart").locator("canvas")).toBeVisible();
+  await expect(page.getByTestId("intake")).toContainText("0");
+  await expect(page.getByTestId("net")).toBeVisible();
+  await expect(page.getByText("deficit")).toBeVisible();
+
+  // Chart defaults to focused; the toggle switches it to the detailed view.
+  const toggle = page.getByTestId("details-toggle");
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
 });
 
 // AC-7 (001-project-skeleton)

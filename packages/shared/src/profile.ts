@@ -94,6 +94,7 @@ export const ProfileSchema = z.object({
   activityLevel: z.enum(ACTIVITY_VALUES),
   bmr: z.number(),
   tdee: z.number(),
+  createdAt: z.string(),
   updatedAt: z.string(),
 });
 

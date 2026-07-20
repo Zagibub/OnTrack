@@ -101,6 +101,9 @@ describe("profile API", () => {
     const fetched = await get(cookie);
     expect(fetched.statusCode).toBe(200);
     expect(fetched.json().tdee).toBe(created.json().tdee);
+    // 006: createdAt is surfaced so the Today chart can anchor day-one to it.
+    expect(typeof fetched.json().createdAt).toBe("string");
+    expect(Number.isNaN(Date.parse(fetched.json().createdAt))).toBe(false);
   });
 
   // AC-2 (005)
