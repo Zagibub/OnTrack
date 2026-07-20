@@ -43,9 +43,16 @@ test("links a web app manifest and registers a service worker", async ({ page })
 
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", /manifest/);
 
-  const swRegistered = await page.waitForFunction(async () => {
-    const registration = await navigator.serviceWorker.getRegistration();
-    return registration !== undefined;
-  });
-  expect(await swRegistered.jsonValue()).toBe(true);
+  // The SW registers on app stability (registerWhenStable), which can trail first
+  // paint by a beat — poll rather than snapshot.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const registration = await navigator.serviceWorker.getRegistration();
+          return registration !== undefined;
+        }),
+      { timeout: 30_000 },
+    )
+    .toBe(true);
 });

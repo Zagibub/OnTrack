@@ -7,6 +7,8 @@ on:
 
 env:
   POSTGRES_PASSWORD: local-dev-password
+  AUTH_SECRET: ci-only-secret-not-for-production
+  APP_URL: http://localhost:8080
 
 jobs:
   checks:

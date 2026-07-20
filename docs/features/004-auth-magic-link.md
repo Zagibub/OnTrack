@@ -23,6 +23,15 @@ the sign-in screen is built to accommodate them.
   - Route guard: unauthenticated users → sign-in; onboarding "Get started" → sign-in
 - Out of scope: Google/MS OAuth (phase 2), profile wizard (005), account deletion (M5).
 
+### Phase 2 note — OAuth token storage
+better-auth's `account` table reserves `access_token` / `refresh_token` / `id_token`;
+they stay NULL for magic-link and are only populated when social sign-in lands. When
+phase 2 ships, these provider tokens MUST be encrypted at rest — better-auth stores
+them in plaintext by default. Enable `databaseHooks`/field encryption (or an
+application-level encrypt on write, decrypt on read keyed by a `TOKEN_ENC_KEY` env
+secret) before any OAuth provider is enabled. Refresh tokens are long-lived
+credentials; a DB leak of plaintext tokens = full account takeover at the provider.
+
 ## 3. UX Outline
 Onboarding CTA → `/sign-in`: email field + "Send me a link" (+ disabled OAuth buttons
 teasing phase 2? No — show nothing until real). Success state: "Check your inbox".
