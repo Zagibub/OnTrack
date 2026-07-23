@@ -2,9 +2,11 @@ import { Component, computed, inject, type OnDestroy, signal } from "@angular/co
 import { Router, RouterLink } from "@angular/router";
 import { TranslocoDirective } from "@jsverse/transloco";
 import { computeDayBalance, type DayPoint, intakeByHour, type MealEntry } from "@ontrack/shared";
+import { CalendarDaysIcon, LucideAngularModule } from "lucide-angular";
 import { AuthService } from "../auth/auth";
 import { MealService } from "../meals/meal";
 import { ProfileService } from "../profile/profile";
+import { Fab } from "../ui/fab/fab";
 import { ThemeToggle } from "../ui/theme/theme-toggle";
 import { BalanceChart } from "./balance-chart";
 
@@ -21,12 +23,23 @@ interface TodayView {
 
 @Component({
   selector: "ot-today",
-  imports: [TranslocoDirective, BalanceChart, ThemeToggle, RouterLink],
+  imports: [TranslocoDirective, BalanceChart, ThemeToggle, RouterLink, LucideAngularModule, Fab],
   template: `
     <main class="mx-auto max-w-md p-6" *transloco="let t">
       <header class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">{{ t("today.title") }}</h1>
-        <ot-theme-toggle />
+        <div class="flex items-center gap-1">
+          <a
+            routerLink="/history"
+            data-testid="show-entries"
+            [attr.aria-label]="t('today.showEntries')"
+            [title]="t('today.showEntries')"
+            class="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors active:bg-surface-muted"
+          >
+            <lucide-angular [img]="calendarIcon" [size]="20" />
+          </a>
+          <ot-theme-toggle />
+        </div>
       </header>
 
       @if (view(); as v) {
@@ -42,8 +55,8 @@ interface TodayView {
             <div class="text-xs text-ink-muted">{{ t("today.net") }}</div>
             <div
               class="text-4xl font-bold leading-tight tabular-nums"
-              [class.text-primary]="v.deficit"
-              [class.text-danger]="!v.deficit"
+              [class.text-balance-down]="v.deficit"
+              [class.text-balance-up]="!v.deficit"
               data-testid="net"
             >
               {{ v.net > 0 ? "+" : "" }}{{ v.net }}
@@ -80,14 +93,7 @@ interface TodayView {
         </div>
       }
 
-      <a
-        routerLink="/add"
-        data-testid="add-intake"
-        [attr.aria-label]="t('today.addIntake')"
-        class="fixed bottom-6 left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-primary text-3xl leading-none text-on-primary shadow-card active:bg-primary-strong"
-      >
-        +
-      </a>
+      <ot-fab testId="add-intake" [label]="t('today.addIntake')" />
 
       <button
         type="button"
@@ -104,6 +110,8 @@ export class Today implements OnDestroy {
   private readonly router = inject(Router);
   private readonly profiles = inject(ProfileService);
   private readonly meals = inject(MealService);
+
+  protected readonly calendarIcon = CalendarDaysIcon;
 
   /** The reference "now", re-stamped each minute so the balance visibly burns down. */
   protected readonly now = signal(new Date());

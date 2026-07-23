@@ -9,7 +9,7 @@
     @if (state() === "sent") {
       <div class="text-center" data-testid="sent-state">
         <h1 class="text-2xl font-bold">{{ t("signIn.sentTitle") }}</h1>
-        <p class="mt-2 text-ink-muted">{{ t("signIn.sentBody", { email: email.value }) }}</p>
+        <p class="mt-2 text-ink-muted">{{ t("signIn.sentBody", { email: model().email }) }}</p>
         <button type="button" (click)="reset()" class="mt-6 text-sm text-ink-muted underline">
           {{ t("signIn.useDifferent") }}
         </button>
@@ -23,7 +23,7 @@
           [label]="t('signIn.emailLabel')"
           [placeholder]="t('signIn.emailPlaceholder')"
           [error]="error()"
-          [formControl]="email"
+          [formField]="f.email"
         />
         <ot-button type="submit" [disabled]="state() === 'sending'">
           {{ state() === "sending" ? t("signIn.sending") : t("signIn.submit") }}

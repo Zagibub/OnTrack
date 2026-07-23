@@ -19,7 +19,7 @@
               {{ t("wizard.birthYearLabel") }}
             </span>
             <select
-              [formControl]="form.controls.birthYear"
+              [formField]="f.birthYear"
               [attr.aria-label]="t('wizard.birthYearLabel')"
               class="min-h-11 w-full rounded-xl border border-ink-muted/30 bg-surface px-3 text-base focus:border-primary focus:outline-none"
             >
@@ -55,7 +55,7 @@
             kind="number"
             [label]="t('wizard.heightLabel') + ' (' + t('wizard.heightUnit') + ')'"
             [placeholder]="t('wizard.heightPlaceholder')"
-            [formControl]="form.controls.heightCm"
+            [formField]="f.heightCm"
             [error]="heightInvalid() ? t('wizard.heightError', { min: heightMin, max: heightMax }) : null"
           />
         </div>
@@ -68,7 +68,7 @@
             kind="number"
             [label]="t('wizard.weightLabel') + ' (' + t('wizard.weightUnit') + ')'"
             [placeholder]="t('wizard.weightPlaceholder')"
-            [formControl]="form.controls.weightKg"
+            [formField]="f.weightKg"
             [error]="weightInvalid() ? t('wizard.weightError', { min: weightMin, max: weightMax }) : null"
           />
         </div>

@@ -12,6 +12,7 @@
     "dev": "true"
   },
   "dependencies": {
+    "date-fns": "^4.4.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

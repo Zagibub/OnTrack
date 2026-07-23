@@ -1,6 +1,5 @@
 import { Component, computed, inject, signal } from "@angular/core";
-import { toSignal } from "@angular/core/rxjs-interop";
-import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
+import { FormField, form } from "@angular/forms/signals";
 import { Router } from "@angular/router";
 import { TranslocoDirective, TranslocoService } from "@jsverse/transloco";
 import {
@@ -26,9 +25,17 @@ type StepKey = "birthYear" | "sex" | "height" | "weight" | "activity";
 const STEPS: StepKey[] = ["birthYear", "sex", "height", "weight", "activity"];
 const SUMMARY = STEPS.length;
 
+interface WizardModel {
+  birthYear: string;
+  sex: Sex | "";
+  heightCm: string;
+  weightKg: string;
+  activityLevel: ActivityLevel | "";
+}
+
 @Component({
   selector: "ot-profile-wizard",
-  imports: [Button, Card, TextField, ReactiveFormsModule, TranslocoDirective],
+  imports: [Button, Card, TextField, FormField, TranslocoDirective],
   templateUrl: "./wizard.html",
 })
 export class ProfileWizard {
@@ -56,16 +63,14 @@ export class ProfileWizard {
     (_, i) => this.currentYear - MIN_AGE - i,
   );
 
-  protected readonly form = new FormGroup({
-    birthYear: new FormControl("", { nonNullable: true }),
-    sex: new FormControl<Sex | "">("", { nonNullable: true }),
-    heightCm: new FormControl("", { nonNullable: true }),
-    weightKg: new FormControl("", { nonNullable: true }),
-    activityLevel: new FormControl<ActivityLevel | "">("", { nonNullable: true }),
+  protected readonly model = signal<WizardModel>({
+    birthYear: "",
+    sex: "",
+    heightCm: "",
+    weightKg: "",
+    activityLevel: "",
   });
-  private readonly value = toSignal(this.form.valueChanges, {
-    initialValue: this.form.getRawValue(),
-  });
+  protected readonly f = form(this.model);
 
   protected readonly stepIndex = signal(0);
   protected readonly saving = signal(false);
@@ -77,7 +82,7 @@ export class ProfileWizard {
 
   /** Fully-parsed answers, or null while any field is missing/out of range. */
   protected readonly answers = computed(() => {
-    const v = this.value();
+    const v = this.model();
     const birthYear = Number(v.birthYear);
     const heightCm = Number(v.heightCm);
     const weightKg = Number(v.weightKg);
@@ -103,16 +108,16 @@ export class ProfileWizard {
 
   // Show a field error only once something out-of-range has been entered.
   protected readonly heightInvalid = computed(() => {
-    const v = this.value().heightCm;
+    const v = this.model().heightCm;
     return v !== "" && !this.inRange(Number(v), HEIGHT_MIN_CM, HEIGHT_MAX_CM);
   });
   protected readonly weightInvalid = computed(() => {
-    const v = this.value().weightKg;
+    const v = this.model().weightKg;
     return v !== "" && !this.inRange(Number(v), WEIGHT_MIN_KG, WEIGHT_MAX_KG);
   });
 
   protected readonly stepValid = computed(() => {
-    const v = this.value();
+    const v = this.model();
     switch (this.currentStep()) {
       case "birthYear":
         return this.inRange(
@@ -134,7 +139,7 @@ export class ProfileWizard {
   });
 
   protected choose(key: "sex" | "activityLevel", value: string): void {
-    this.form.controls[key].setValue(value as never);
+    this.model.update((m) => ({ ...m, [key]: value }));
     this.next();
   }
 
@@ -167,10 +172,8 @@ export class ProfileWizard {
     }
   }
 
-  protected selected(
-    field: "birthYear" | "sex" | "heightCm" | "weightKg" | "activityLevel",
-  ): string {
-    return this.value()[field] ?? "";
+  protected selected(field: keyof WizardModel): string {
+    return this.model()[field] ?? "";
   }
 
   private inRange(n: number, min: number, max: number): boolean {

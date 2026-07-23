@@ -10,6 +10,7 @@ import {
   makeUpsertProfileSchema,
   type Profile,
   type Sex,
+  UpdateMealEntrySchema,
 } from "@ontrack/shared";
 import { and, asc, count, desc, eq, gte, lte } from "drizzle-orm";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
@@ -217,6 +218,50 @@ export function buildApp({ auth, db, foodSearch, vision, photoDailyQuota = 20 }:
           .where(and(...filters))
           .orderBy(asc(mealEntries.loggedAt));
         return rows.map(toMealEntry);
+      });
+
+      // Edit an entry (009). Only the owner's own row is touched; a non-matching id
+      // (unknown or another user's) yields 404 with no ownership leak.
+      app.patch("/api/v1/meal-entries/:id", async (req, reply) => {
+        const user = await requireUser(req, reply);
+        if (!user) return;
+
+        const id = Number((req.params as { id: string }).id);
+        if (!Number.isInteger(id)) return reply.code(404).send({ message: "Not found" });
+
+        const parsed = UpdateMealEntrySchema.safeParse(req.body);
+        if (!parsed.success) {
+          return reply.code(400).send({ message: "Invalid update", issues: parsed.error.issues });
+        }
+        const { name, kcal, loggedAt } = parsed.data;
+        const patch: Partial<typeof mealEntries.$inferInsert> = {};
+        if (name !== undefined) patch.name = name;
+        if (kcal !== undefined) patch.kcal = kcal;
+        if (loggedAt !== undefined) patch.loggedAt = new Date(loggedAt);
+
+        const [row] = await db
+          .update(mealEntries)
+          .set(patch)
+          .where(and(eq(mealEntries.id, id), eq(mealEntries.userId, user.id)))
+          .returning();
+        if (!row) return reply.code(404).send({ message: "Not found" });
+        return toMealEntry(row);
+      });
+
+      // Delete an entry (009). Owner-scoped; unknown/other-user id → 404.
+      app.delete("/api/v1/meal-entries/:id", async (req, reply) => {
+        const user = await requireUser(req, reply);
+        if (!user) return;
+
+        const id = Number((req.params as { id: string }).id);
+        if (!Number.isInteger(id)) return reply.code(404).send({ message: "Not found" });
+
+        const [row] = await db
+          .delete(mealEntries)
+          .where(and(eq(mealEntries.id, id), eq(mealEntries.userId, user.id)))
+          .returning({ id: mealEntries.id });
+        if (!row) return reply.code(404).send({ message: "Not found" });
+        return reply.code(204).send();
       });
 
       // Accept the photo content disclaimer (SPEC §3.6) — one-time, per user.

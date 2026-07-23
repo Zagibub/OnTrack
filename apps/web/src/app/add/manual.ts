@@ -1,6 +1,5 @@
-import { Component, computed, inject, signal } from "@angular/core";
-import { toSignal } from "@angular/core/rxjs-interop";
-import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
+import { Component, inject, signal } from "@angular/core";
+import { FormField, form, required, validate } from "@angular/forms/signals";
 import { Router, RouterLink } from "@angular/router";
 import { TranslocoDirective } from "@jsverse/transloco";
 import { MealService } from "../meals/meal";
@@ -10,7 +9,7 @@ import { currentTimeValue, timeToIso } from "./log-time";
 
 @Component({
   selector: "ot-add-manual",
-  imports: [ReactiveFormsModule, RouterLink, TranslocoDirective, Button, TextField],
+  imports: [RouterLink, TranslocoDirective, Button, TextField, FormField],
   template: `
     <main class="mx-auto flex min-h-dvh max-w-md flex-col p-6" *transloco="let t">
       <header class="flex items-center gap-3">
@@ -18,23 +17,18 @@ import { currentTimeValue, timeToIso } from "./log-time";
         <h1 class="text-2xl font-bold">{{ t("add.manualTitle") }}</h1>
       </header>
 
-      <form class="mt-6 flex flex-1 flex-col gap-4" [formGroup]="form" (ngSubmit)="save()">
+      <form class="mt-6 flex flex-1 flex-col gap-4" (submit)="$event.preventDefault(); save()">
         <ot-text-field
           [label]="t('add.foodName')"
           [placeholder]="t('add.foodNamePlaceholder')"
-          formControlName="name"
+          [formField]="f.name"
         />
-        <ot-text-field
-          kind="number"
-          [label]="t('add.kcal')"
-          placeholder="450"
-          formControlName="kcal"
-        />
+        <ot-text-field kind="number" [label]="t('add.kcal')" placeholder="450" [formField]="f.kcal" />
         <label class="block">
           <span class="mb-1 block text-sm font-medium text-ink-muted">{{ t("add.time") }}</span>
           <input
             type="time"
-            formControlName="time"
+            [formField]="f.time"
             class="min-h-11 w-full rounded-xl border border-ink-muted/30 bg-surface px-3 text-base focus:border-primary focus:outline-none"
           />
         </label>
@@ -44,7 +38,7 @@ import { currentTimeValue, timeToIso } from "./log-time";
         }
 
         <div class="mt-auto">
-          <ot-button type="submit" [disabled]="!canSave() || saving()">
+          <ot-button type="submit" [disabled]="!f().valid() || saving()">
             {{ saving() ? t("common.saving") : t("add.save") }}
           </ot-button>
         </div>
@@ -56,27 +50,21 @@ export class AddManual {
   private readonly meals = inject(MealService);
   private readonly router = inject(Router);
 
-  protected readonly form = new FormGroup({
-    name: new FormControl("", { nonNullable: true }),
-    kcal: new FormControl("", { nonNullable: true }),
-    time: new FormControl(currentTimeValue(), { nonNullable: true }),
-  });
-  private readonly value = toSignal(this.form.valueChanges, {
-    initialValue: this.form.getRawValue(),
+  protected readonly model = signal({ name: "", kcal: "", time: currentTimeValue() });
+  protected readonly f = form(this.model, (p) => {
+    required(p.name);
+    validate(p.kcal, ({ value }) => {
+      const n = Number(value());
+      return value() !== "" && Number.isFinite(n) && n >= 0 ? null : { kind: "kcal" };
+    });
   });
 
   protected readonly saving = signal(false);
   protected readonly failed = signal(false);
 
-  protected readonly canSave = computed(() => {
-    const v = this.value();
-    const kcal = Number(v.kcal);
-    return !!v.name?.trim() && Number.isFinite(kcal) && kcal >= 0 && v.kcal !== "";
-  });
-
   protected async save(): Promise<void> {
-    if (!this.canSave() || this.saving()) return;
-    const v = this.form.getRawValue();
+    if (!this.f().valid() || this.saving()) return;
+    const v = this.model();
     this.saving.set(true);
     this.failed.set(false);
     try {

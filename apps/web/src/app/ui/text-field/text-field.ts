@@ -1,32 +1,28 @@
-import { Component, forwardRef, input, signal } from "@angular/core";
-import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from "@angular/forms";
+import { Component, input, model } from "@angular/core";
+import type { FormValueControl } from "@angular/forms/signals";
 
 let nextId = 0;
 
+/**
+ * Text/number input for Signal Forms. Implements `FormValueControl<string>`, so it binds
+ * via `[formField]`; the parent derives and passes `[error]` from the field's state.
+ */
 @Component({
   styles: [":host{display:block}"],
   selector: "ot-text-field",
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => TextField),
-      multi: true,
-    },
-  ],
   template: `
     <label class="block">
       <span class="mb-1 block text-sm font-medium text-ink-muted">{{ label() }}</span>
       <input
         [id]="id"
-        [type]="kind() === 'number' ? 'text' : 'text'"
+        type="text"
         [inputMode]="kind() === 'number' ? 'decimal' : 'text'"
         [placeholder]="placeholder()"
-        [disabled]="isDisabled()"
+        [disabled]="disabled()"
         [value]="value()"
         [attr.aria-invalid]="error() ? true : null"
         [attr.aria-describedby]="error() ? id + '-error' : null"
-        (input)="onInput($event)"
-        (blur)="onTouched()"
+        (input)="value.set($any($event.target).value)"
         class="min-h-11 w-full rounded-xl border border-ink-muted/30 bg-surface px-3 text-base focus:border-primary focus:outline-none aria-invalid:border-danger"
       />
     </label>
@@ -35,38 +31,16 @@ let nextId = 0;
     </p>
   `,
 })
-export class TextField implements ControlValueAccessor {
+export class TextField implements FormValueControl<string> {
+  /** Two-way bound by the `[formField]` directive. */
+  readonly value = model<string>("");
+  /** Set by `[formField]` when the field is disabled via schema logic. */
+  readonly disabled = input<boolean>(false);
+
   readonly label = input.required<string>();
   readonly kind = input<"text" | "number">("text");
   readonly placeholder = input("");
   readonly error = input<string | null>(null);
 
   protected readonly id = `ot-text-field-${nextId++}`;
-  protected readonly value = signal("");
-  protected readonly isDisabled = signal(false);
-
-  protected onChange: (value: string) => void = () => {};
-  protected onTouched: () => void = () => {};
-
-  protected onInput(event: Event): void {
-    const next = (event.target as HTMLInputElement).value;
-    this.value.set(next);
-    this.onChange(next);
-  }
-
-  writeValue(value: string | null): void {
-    this.value.set(value ?? "");
-  }
-
-  registerOnChange(fn: (value: string) => void): void {
-    this.onChange = fn;
-  }
-
-  registerOnTouched(fn: () => void): void {
-    this.onTouched = fn;
-  }
-
-  setDisabledState(isDisabled: boolean): void {
-    this.isDisabled.set(isDisabled);
-  }
 }

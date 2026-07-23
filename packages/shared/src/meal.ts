@@ -18,6 +18,19 @@ export type CreateMealEntry = z.infer<typeof CreateMealEntrySchema>;
 export const MealEntrySchema = CreateMealEntrySchema.extend({ id: z.number().int() });
 export type MealEntry = z.infer<typeof MealEntrySchema>;
 
+/** Partial update of an existing entry (009). `source` is immutable; at least one field
+ * must be present. `loggedAt` may move the entry to another day. */
+export const UpdateMealEntrySchema = CreateMealEntrySchema.pick({
+  name: true,
+  kcal: true,
+  loggedAt: true,
+})
+  .partial()
+  .refine((patch) => Object.keys(patch).length > 0, {
+    message: "at least one field is required",
+  });
+export type UpdateMealEntry = z.infer<typeof UpdateMealEntrySchema>;
+
 /** A food from the search provider, normalised to per-serving energy. */
 export const FoodSearchResultSchema = z.object({
   id: z.string(),

@@ -1,5 +1,5 @@
-import { Component } from "@angular/core";
-import { RouterLink } from "@angular/router";
+import { Component, inject } from "@angular/core";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { TranslocoDirective } from "@jsverse/transloco";
 import {
   CameraIcon,
@@ -30,7 +30,14 @@ const TILES: Tile[] = [
   template: `
     <main class="mx-auto max-w-md p-6" *transloco="let t">
       <header class="flex items-center gap-3">
-        <a routerLink="/today" class="text-sm text-ink-muted underline">{{ t("common.back") }}</a>
+        <button
+          type="button"
+          (click)="goBack()"
+          data-testid="add-back"
+          class="text-sm text-ink-muted underline"
+        >
+          {{ t("common.back") }}
+        </button>
         <h1 class="text-2xl font-bold">{{ t("add.title") }}</h1>
       </header>
 
@@ -50,5 +57,12 @@ const TILES: Tile[] = [
   `,
 })
 export class AddChooser {
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   protected readonly tiles = TILES;
+
+  /** Return to wherever the add flow was opened from (a specific history day), or Today. */
+  protected goBack(): void {
+    void this.router.navigateByUrl(this.route.snapshot.queryParamMap.get("from") ?? "/today");
+  }
 }

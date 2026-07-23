@@ -71,6 +71,37 @@ describe("Today", () => {
     expect(localStorage.getItem("ot-today-detailed")).toBe("1");
   });
 
+  // AC-18 (009): net uses the directional chevron greens, never red/danger.
+  it("colours the net figure with the down-chevron green for a deficit", async () => {
+    profiles.profile.set(PROFILE);
+    pinNow(new Date(2026, 6, 20, 3, 30)); // early day → deficit
+    await fixture.whenStable();
+
+    const net = root().querySelector('[data-testid="net"]') as HTMLElement;
+    expect(net.classList).toContain("text-balance-down");
+    expect(net.classList).not.toContain("text-danger");
+  });
+
+  it("colours the net figure with the up-chevron green for a surplus", async () => {
+    profiles.profile.set(PROFILE);
+    // End of day with a big intake → surplus (net > 0).
+    (fixture.componentInstance as unknown as { entries: { set(v: unknown): void } }).entries.set([
+      {
+        id: 1,
+        name: "Feast",
+        kcal: 4000,
+        source: "manual",
+        loggedAt: new Date(2026, 6, 20, 1).toISOString(),
+      },
+    ]);
+    pinNow(new Date(2026, 6, 20, 23, 59));
+    await fixture.whenStable();
+
+    const net = root().querySelector('[data-testid="net"]') as HTMLElement;
+    expect(net.classList).toContain("text-balance-up");
+    expect(net.classList).not.toContain("text-danger");
+  });
+
   it("renders nothing chart-related until a profile is loaded", async () => {
     profiles.profile.set(null);
     await fixture.whenStable();

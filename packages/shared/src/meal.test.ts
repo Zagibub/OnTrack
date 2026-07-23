@@ -7,6 +7,7 @@ import {
   kcalPerGram,
   PhotoFoodItemSchema,
   servingKcal,
+  UpdateMealEntrySchema,
 } from "./meal.js";
 
 const IMG = "data:image/webp;base64,AAAA";
@@ -42,6 +43,22 @@ describe("meal helpers", () => {
   it("accepts 'photo' as a meal source", () => {
     const base = { name: "Salad", kcal: 200, source: "photo", loggedAt: new Date().toISOString() };
     expect(CreateMealEntrySchema.safeParse(base).success).toBe(true);
+  });
+
+  // AC-4 (009): partial update, at least one field, source not updatable.
+  it("validates a partial meal-entry update", () => {
+    expect(UpdateMealEntrySchema.safeParse({ kcal: 400 }).success).toBe(true);
+    expect(UpdateMealEntrySchema.safeParse({ name: "Lunch" }).success).toBe(true);
+    expect(UpdateMealEntrySchema.safeParse({ loggedAt: "2026-07-19T12:00:00.000Z" }).success).toBe(
+      true,
+    );
+    expect(UpdateMealEntrySchema.safeParse({}).success).toBe(false);
+    expect(UpdateMealEntrySchema.safeParse({ kcal: -1 }).success).toBe(false);
+    expect(UpdateMealEntrySchema.safeParse({ name: "" }).success).toBe(false);
+    expect(UpdateMealEntrySchema.safeParse({ loggedAt: "nope" }).success).toBe(false);
+    // `source` is silently dropped (not part of the schema), never applied.
+    const parsed = UpdateMealEntrySchema.safeParse({ kcal: 400, source: "photo" });
+    expect(parsed.success && "source" in parsed.data).toBe(false);
   });
 });
 

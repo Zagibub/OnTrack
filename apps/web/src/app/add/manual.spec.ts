@@ -7,7 +7,7 @@ import { provideTranslocoTesting } from "../i18n/testing";
 import { AddManual } from "./manual";
 
 interface ManualInternals {
-  form: { setValue(v: { name: string; kcal: string; time: string }): void };
+  model: { set(v: { name: string; kcal: string; time: string }): void };
   save(): Promise<void>;
 }
 
@@ -31,7 +31,7 @@ describe("AddManual", () => {
 
   // AC-6: valid input POSTs a manual entry and returns to Today.
   it("saves a manual entry and navigates to /today", async () => {
-    internals().form.setValue({ name: "  Oatmeal  ", kcal: "350", time: "08:15" });
+    internals().model.set({ name: "  Oatmeal  ", kcal: "350", time: "08:15" });
     const saved = internals().save();
 
     const req = http.expectOne("/api/v1/meal-entries");
@@ -45,7 +45,7 @@ describe("AddManual", () => {
   });
 
   it("does not save when the name is empty", async () => {
-    internals().form.setValue({ name: "", kcal: "350", time: "08:15" });
+    internals().model.set({ name: "", kcal: "350", time: "08:15" });
     await internals().save();
     http.expectNone("/api/v1/meal-entries");
     expect(navigate).not.toHaveBeenCalled();

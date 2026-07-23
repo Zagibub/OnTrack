@@ -26,6 +26,7 @@ describe("ProfileWizard", () => {
   async function selectYear(value: string): Promise<void> {
     const select = root().querySelector("select") as HTMLSelectElement;
     select.value = value;
+    select.dispatchEvent(new Event("input"));
     select.dispatchEvent(new Event("change"));
     await fixture.whenStable();
   }

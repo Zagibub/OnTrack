@@ -7,6 +7,7 @@ import type {
   CreatePhotoMealResponse,
   FoodSearchResult,
   MealEntry,
+  UpdateMealEntry,
 } from "@ontrack/shared";
 import { firstValueFrom } from "rxjs";
 
@@ -23,8 +24,23 @@ export class MealService {
   listForDay(day: Date): Promise<MealEntry[]> {
     const from = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0);
     const to = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999);
+    return this.listForRange(from, to);
+  }
+
+  /** Entries logged within a local date range (inclusive) — powers week/month views. */
+  listForRange(from: Date, to: Date): Promise<MealEntry[]> {
     const params = new HttpParams().set("from", from.toISOString()).set("to", to.toISOString());
     return firstValueFrom(this.http.get<MealEntry[]>("/api/v1/meal-entries", { params }));
+  }
+
+  /** Edit an entry (009). `loggedAt` may move it to another day. */
+  update(id: number, patch: UpdateMealEntry): Promise<MealEntry> {
+    return firstValueFrom(this.http.patch<MealEntry>(`/api/v1/meal-entries/${id}`, patch));
+  }
+
+  /** Delete an entry (009). */
+  remove(id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`/api/v1/meal-entries/${id}`));
   }
 
   searchFoods(query: string): Promise<FoodSearchResult[]> {

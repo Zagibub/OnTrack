@@ -15,10 +15,14 @@ const BANANA: FoodSearchResult = {
   servingLabel: "1 medium",
 };
 
+interface SearchModel {
+  query: string;
+  servings: string;
+  time: string;
+}
 interface SearchInternals {
-  query: { setValue(v: string): void };
+  model: { update(fn: (m: SearchModel) => SearchModel): void };
   select(f: FoodSearchResult): void;
-  servings: { setValue(v: string): void };
   save(): Promise<void>;
 }
 
@@ -44,7 +48,7 @@ describe("AddSearch", () => {
   // AC-7: picking a result and entering servings previews and saves the computed kcal.
   it("previews and saves servings × per-serving kcal", async () => {
     internals().select(BANANA);
-    internals().servings.setValue("2");
+    internals().model.update((m) => ({ ...m, servings: "2" }));
     fixture.detectChanges();
 
     expect(root().querySelector('[data-testid="kcal-preview"]')?.textContent).toContain("210");
@@ -62,14 +66,16 @@ describe("AddSearch", () => {
   it("searches the trimmed term and ignores trailing-space-only edits", async () => {
     vi.useFakeTimers();
     try {
-      internals().query.setValue("  banana  ");
+      internals().model.update((m) => ({ ...m, query: "  banana  " }));
+      fixture.detectChanges(); // flush the debounce effect → schedules the timer
       await vi.advanceTimersByTimeAsync(300);
       const req = http.expectOne(
         (r) => r.url === "/api/v1/foods/search" && r.params.get("q") === "banana",
       );
       req.flush([BANANA]);
 
-      internals().query.setValue("banana ");
+      internals().model.update((m) => ({ ...m, query: "banana " }));
+      fixture.detectChanges();
       await vi.advanceTimersByTimeAsync(300);
       http.expectNone((r) => r.url === "/api/v1/foods/search");
     } finally {

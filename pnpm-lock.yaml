@@ -96,6 +96,9 @@ importers:
       chartjs-plugin-zoom:
         specifier: ^2.2.0
         version: 2.2.0(chart.js@4.5.1)
+      date-fns:
+        specifier: ^4.4.0
+        version: 4.4.0
       lucide-angular:
         specifier: ^1.0.0
         version: 1.0.0(@angular/common@22.0.7(@angular/core@22.0.7(@angular/compiler@22.0.7)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.0.7(@angular/compiler@22.0.7)(rxjs@7.8.2))
@@ -196,6 +199,9 @@ importers:
 
   packages/shared:
     dependencies:
+      date-fns:
+        specifier: ^4.4.0
+        version: 4.4.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -4686,6 +4692,9 @@ packages:
   data-urls@7.0.0:
     resolution: {integrity: sha512-23XHcCF+coGYevirZceTVD7NdJOqVn+49IHyxgszm+JIiHLoB2TkmPtsYkNWT1pvRSGkc35L6NHs0yHkN2SumA==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
+
+  date-fns@4.4.0:
+    resolution: {integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==}
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -12036,6 +12045,8 @@ snapshots:
       whatwg-url: 16.0.1(@noble/hashes@2.2.0)
     transitivePeerDependencies:
       - '@noble/hashes'
+
+  date-fns@4.4.0: {}
 
   debug@2.6.9:
     dependencies:

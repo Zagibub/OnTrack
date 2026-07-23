@@ -8,5 +8,6 @@ export const HealthResponseSchema = z.object({
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 
 export * from "./balance.js";
+export * from "./calendar.js";
 export * from "./meal.js";
 export * from "./profile.js";

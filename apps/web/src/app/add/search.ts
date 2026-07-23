@@ -1,19 +1,19 @@
 import { HttpErrorResponse } from "@angular/common/http";
-import { Component, computed, inject, signal } from "@angular/core";
-import { toSignal } from "@angular/core/rxjs-interop";
-import { FormControl, ReactiveFormsModule } from "@angular/forms";
+import { Component, computed, effect, inject, signal } from "@angular/core";
+import { FormField, form } from "@angular/forms/signals";
 import { Router, RouterLink } from "@angular/router";
 import { TranslocoDirective } from "@jsverse/transloco";
 import { type FoodSearchResult, servingKcal } from "@ontrack/shared";
-import { debounceTime, distinctUntilChanged, map } from "rxjs";
 import { MealService } from "../meals/meal";
 import { Button } from "../ui/button/button";
 import { TextField } from "../ui/text-field/text-field";
 import { currentTimeValue, timeToIso } from "./log-time";
 
+const SEARCH_DEBOUNCE_MS = 300;
+
 @Component({
   selector: "ot-add-search",
-  imports: [ReactiveFormsModule, RouterLink, TranslocoDirective, Button, TextField],
+  imports: [RouterLink, TranslocoDirective, Button, TextField, FormField],
   template: `
     <main class="mx-auto max-w-md p-6" *transloco="let t">
       <header class="flex items-center gap-3">
@@ -37,9 +37,8 @@ import { currentTimeValue, timeToIso } from "./log-time";
               <input
                 type="number"
                 inputmode="decimal"
-                min="0"
                 step="0.5"
-                [formControl]="servings"
+                [formField]="f.servings"
                 class="min-h-11 w-full rounded-xl border border-ink-muted/30 bg-surface px-3 text-base focus:border-primary focus:outline-none"
               />
             </label>
@@ -47,7 +46,7 @@ import { currentTimeValue, timeToIso } from "./log-time";
               <span class="mb-1 block text-sm font-medium text-ink-muted">{{ t("add.time") }}</span>
               <input
                 type="time"
-                [formControl]="time"
+                [formField]="f.time"
                 class="min-h-11 w-full rounded-xl border border-ink-muted/30 bg-surface px-3 text-base focus:border-primary focus:outline-none"
               />
             </label>
@@ -75,7 +74,7 @@ import { currentTimeValue, timeToIso } from "./log-time";
           class="mt-6 block"
           [label]="t('add.searchLabel')"
           [placeholder]="t('add.searchPlaceholder')"
-          [formControl]="query"
+          [formField]="f.query"
         />
 
         @if (searching()) {
@@ -84,7 +83,7 @@ import { currentTimeValue, timeToIso } from "./log-time";
           <p class="mt-4 text-sm text-danger">{{ t("add.searchUnavailable") }}</p>
         } @else if (searchError() === "generic") {
           <p class="mt-4 text-sm text-danger">{{ t("add.searchError") }}</p>
-        } @else if (results().length === 0 && query.value.trim().length >= 2) {
+        } @else if (results().length === 0 && model().query.trim().length >= 2) {
           <p class="mt-4 text-sm text-ink-muted">{{ t("add.noMatches") }}</p>
         }
 
@@ -116,9 +115,8 @@ export class AddSearch {
   private readonly meals = inject(MealService);
   private readonly router = inject(Router);
 
-  protected readonly query = new FormControl("", { nonNullable: true });
-  protected readonly servings = new FormControl("1", { nonNullable: true });
-  protected readonly time = new FormControl(currentTimeValue(), { nonNullable: true });
+  protected readonly model = signal({ query: "", servings: "1", time: currentTimeValue() });
+  protected readonly f = form(this.model);
 
   protected readonly results = signal<FoodSearchResult[]>([]);
   protected readonly selected = signal<FoodSearchResult | null>(null);
@@ -127,23 +125,25 @@ export class AddSearch {
   protected readonly saving = signal(false);
   protected readonly failed = signal(false);
 
-  private readonly servingsValue = toSignal(this.servings.valueChanges, { initialValue: "1" });
   protected readonly preview = computed(() => {
     const food = this.selected();
     if (!food) return 0;
-    const n = Number(this.servingsValue());
+    const n = Number(this.model().servings);
     return Number.isFinite(n) && n > 0 ? servingKcal(food.kcalPerServing, n) : 0;
   });
 
+  private searchTimer?: ReturnType<typeof setTimeout>;
+  private lastQuery = "";
+
   constructor() {
-    // Trim in-stream so whitespace-only edits don't fire, and dedup on the trimmed term.
-    this.query.valueChanges
-      .pipe(
-        map((q) => q.trim()),
-        debounceTime(300),
-        distinctUntilChanged(),
-      )
-      .subscribe((q) => void this.runSearch(q));
+    // Debounce search on the trimmed query; skip when the trimmed term is unchanged.
+    effect(() => {
+      const q = this.model().query.trim();
+      if (q === this.lastQuery) return;
+      this.lastQuery = q;
+      clearTimeout(this.searchTimer);
+      this.searchTimer = setTimeout(() => void this.runSearch(q), SEARCH_DEBOUNCE_MS);
+    });
   }
 
   private async runSearch(q: string): Promise<void> {
@@ -185,7 +185,7 @@ export class AddSearch {
         name: food.brand ? `${food.name} (${food.brand})` : food.name,
         kcal: this.preview(),
         source: "search",
-        loggedAt: timeToIso(this.time.value),
+        loggedAt: timeToIso(this.model().time),
       });
       await this.router.navigateByUrl("/today");
     } catch {

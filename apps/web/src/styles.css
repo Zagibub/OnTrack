@@ -20,6 +20,13 @@
   --color-danger: light-dark(#dc2626, #f87171);
   --color-on-danger: light-dark(#ffffff, #450a0a);
   --color-target: light-dark(#f59e0b, #fbbf24);
+  /* Directional net-balance colours — the two greens of the logo chevrons (009).
+     Never judgmental: surplus = up chevron, deficit = down chevron. Tuned for text
+     contrast in light mode, anchored on the logo hexes (#4ade80 / #16a34a). */
+  --color-balance-up: light-dark(#22c55e, #4ade80);
+  --color-balance-down: light-dark(#15803d, #22c55e);
+  --color-balance-up-soft: light-dark(#dcfce7, #14532d);
+  --color-balance-down-soft: light-dark(#bbf7d0, #14532d);
   --color-surface: light-dark(#ffffff, #1f2428);
   --color-surface-muted: light-dark(#f6f7f4, #15181b);
   --color-ink: light-dark(#111827, #f3f4f6);

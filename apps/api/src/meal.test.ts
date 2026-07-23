@@ -181,6 +181,19 @@ const list = (query = "", cookie?: string) =>
     url: `/api/v1/meal-entries${query}`,
     ...(cookie ? { headers: { cookie } } : {}),
   });
+const patch = (id: number | string, payload: unknown, cookie?: string) =>
+  app.inject({
+    method: "PATCH",
+    url: `/api/v1/meal-entries/${id}`,
+    payload: payload as object,
+    ...(cookie ? { headers: { cookie } } : {}),
+  });
+const del = (id: number | string, cookie?: string) =>
+  app.inject({
+    method: "DELETE",
+    url: `/api/v1/meal-entries/${id}`,
+    ...(cookie ? { headers: { cookie } } : {}),
+  });
 
 describe("meal entries API", () => {
   // AC-2
@@ -216,6 +229,89 @@ describe("meal entries API", () => {
     await post(VALID, a);
     const b = await signIn("intruder@example.com");
     expect((await list("", b)).json()).toEqual([]);
+  });
+});
+
+describe("meal entries edit/delete API (009)", () => {
+  const dayRange = (isoDay: string) => `?from=${isoDay}T00:00:00.000Z&to=${isoDay}T23:59:59.000Z`;
+
+  // AC-1 (009): owner can update fields.
+  it("updates an entry's fields", async () => {
+    const cookie = await signIn("edit@example.com");
+    const id = (await post(VALID, cookie)).json().id;
+
+    const res = await patch(id, { name: "Porridge", kcal: 420 }, cookie);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ id, name: "Porridge", kcal: 420, source: "manual" });
+
+    const listed = (await list(dayRange("2026-07-20"), cookie)).json();
+    expect(listed[0]).toMatchObject({ name: "Porridge", kcal: 420 });
+  });
+
+  // AC-2 (009): re-dating moves the entry between days.
+  it("moves an entry to another day when loggedAt changes", async () => {
+    const cookie = await signIn("redate@example.com");
+    const id = (await post(VALID, cookie)).json().id; // logged 2026-07-20
+
+    expect((await patch(id, { loggedAt: "2026-07-19T08:15:00.000Z" }, cookie)).statusCode).toBe(
+      200,
+    );
+
+    expect((await list(dayRange("2026-07-20"), cookie)).json()).toHaveLength(0);
+    expect((await list(dayRange("2026-07-19"), cookie)).json()).toHaveLength(1);
+  });
+
+  // AC-4 (009): validation.
+  it("rejects invalid updates", async () => {
+    const cookie = await signIn("editbad@example.com");
+    const id = (await post(VALID, cookie)).json().id;
+    expect((await patch(id, {}, cookie)).statusCode).toBe(400);
+    expect((await patch(id, { kcal: -1 }, cookie)).statusCode).toBe(400);
+    expect((await patch(id, { name: "" }, cookie)).statusCode).toBe(400);
+    expect((await patch(id, { loggedAt: "nope" }, cookie)).statusCode).toBe(400);
+  });
+
+  // AC-3 (009): no cross-user update; no ownership leak (404, not 403).
+  it("does not let another user update an entry", async () => {
+    const a = await signIn("owner2@example.com");
+    const id = (await post(VALID, a)).json().id;
+    const b = await signIn("intruder2@example.com");
+
+    expect((await patch(id, { kcal: 1 }, b)).statusCode).toBe(404);
+    expect((await list(dayRange("2026-07-20"), a)).json()[0].kcal).toBe(350);
+  });
+
+  // AC-5 (009): owner can delete; it disappears from the range.
+  it("deletes an entry", async () => {
+    const cookie = await signIn("del@example.com");
+    const id = (await post(VALID, cookie)).json().id;
+
+    expect((await del(id, cookie)).statusCode).toBe(204);
+    expect((await list(dayRange("2026-07-20"), cookie)).json()).toHaveLength(0);
+  });
+
+  // AC-6 (009): no cross-user delete.
+  it("does not let another user delete an entry", async () => {
+    const a = await signIn("owner3@example.com");
+    const id = (await post(VALID, a)).json().id;
+    const b = await signIn("intruder3@example.com");
+
+    expect((await del(id, b)).statusCode).toBe(404);
+    expect((await list(dayRange("2026-07-20"), a)).json()).toHaveLength(1);
+  });
+
+  // AC-7 (009): auth required.
+  it("requires authentication for edit and delete", async () => {
+    const cookie = await signIn("authcheck@example.com");
+    const id = (await post(VALID, cookie)).json().id;
+    expect((await patch(id, { kcal: 1 })).statusCode).toBe(401);
+    expect((await del(id)).statusCode).toBe(401);
+  });
+
+  it("returns 404 for an unknown id", async () => {
+    const cookie = await signIn("missing@example.com");
+    expect((await patch(999999, { kcal: 1 }, cookie)).statusCode).toBe(404);
+    expect((await del(999999, cookie)).statusCode).toBe(404);
   });
 });
 

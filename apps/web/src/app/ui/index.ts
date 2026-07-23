@@ -1,9 +1,14 @@
 export { BarChart } from "./bar-chart/bar-chart";
 export { type BarDatum, computeBarLayout } from "./bar-chart/bar-layout";
 export { Button } from "./button/button";
+export { CalendarCell } from "./calendar-cell/calendar-cell";
 export { Card } from "./card/card";
+export { EntryRow } from "./entry-row/entry-row";
+export { Fab } from "./fab/fab";
 export { Chevron } from "./icons/chevron";
+export { Snackbar } from "./snackbar/snackbar";
 export { StatTile } from "./stat-tile/stat-tile";
 export { TextField } from "./text-field/text-field";
 export { type ThemePreference, ThemeService } from "./theme/theme";
 export { ThemeToggle } from "./theme/theme-toggle";
+export { type ToggleOption, ViewToggle } from "./view-toggle/view-toggle";

@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from "@angular/common/http";
 import { Component, computed, inject, signal } from "@angular/core";
-import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
 import { TranslocoDirective } from "@jsverse/transloco";
 import { kcalPerGram } from "@ontrack/shared";
@@ -27,7 +26,7 @@ type PhotoError = "" | "quota" | "unavailable" | "generic";
 /** Add by photo (SPEC §3.6): consent → capture → vision proposal → confirm → save. */
 @Component({
   selector: "ot-add-photo",
-  imports: [ReactiveFormsModule, RouterLink, TranslocoDirective, Button],
+  imports: [RouterLink, TranslocoDirective, Button],
   template: `
     <main class="mx-auto max-w-md p-6" *transloco="let t">
       <header class="flex items-center gap-3">
@@ -141,7 +140,8 @@ type PhotoError = "" | "quota" | "unavailable" | "generic";
           <span class="mb-1 block text-sm font-medium text-ink-muted">{{ t("add.time") }}</span>
           <input
             type="time"
-            [formControl]="time"
+            [value]="time()"
+            (input)="time.set($any($event.target).value)"
             class="min-h-11 w-full rounded-xl border border-ink-muted/30 bg-surface px-3 text-base focus:border-primary focus:outline-none"
           />
         </label>
@@ -194,7 +194,7 @@ export class AddPhoto {
   private readonly meals = inject(MealService);
   private readonly router = inject(Router);
 
-  protected readonly time = new FormControl(currentTimeValue(), { nonNullable: true });
+  protected readonly time = signal(currentTimeValue());
   protected readonly accepting = signal(false);
   protected readonly analyzing = signal(false);
   protected readonly saving = signal(false);
@@ -334,7 +334,7 @@ export class AddPhoto {
     try {
       await this.meals.createPhotoMeal({
         thumbnail,
-        loggedAt: timeToIso(this.time.value),
+        loggedAt: timeToIso(this.time()),
         items: this.items().map((item) => ({
           name: item.name.trim(),
           kcal: this.itemKcal(item),
