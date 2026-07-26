@@ -30,6 +30,8 @@ export const de: AppTranslation = {
   },
   today: {
     title: "Heute",
+    week: "Woche",
+    month: "Monat",
     intake: "Zufuhr",
     activity: "Aktivität",
     net: "Nettobilanz",

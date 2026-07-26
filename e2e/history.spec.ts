@@ -37,6 +37,15 @@ async function openHistory(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/history$/);
 }
 
+// Feature 010: History can't page before the data horizon. A fresh user's profile was
+// just created, so the current month is the earliest — the ‹ previous control is disabled.
+test("cannot page before the profile-creation horizon", async ({ page }) => {
+  await reachToday(page, "history-horizon");
+  await openHistory(page);
+  await expect(page.getByTestId("view-month")).toBeVisible();
+  await expect(page.getByTestId("history-prev")).toBeDisabled();
+});
+
 // AC-11 / AC-12: entry point opens the month view; the toggle choice is remembered.
 test("opens the calendar and remembers the chosen view", async ({ page }) => {
   await reachToday(page, "history-open");

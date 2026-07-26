@@ -33,6 +33,14 @@ export class MealService {
     return firstValueFrom(this.http.get<MealEntry[]>("/api/v1/meal-entries", { params }));
   }
 
+  /** The user's earliest logged entry, or null when nothing is logged (010). */
+  async earliest(): Promise<string | null> {
+    const res = await firstValueFrom(
+      this.http.get<{ loggedAt: string | null }>("/api/v1/meal-entries/earliest"),
+    );
+    return res.loggedAt;
+  }
+
   /** Edit an entry (009). `loggedAt` may move it to another day. */
   update(id: number, patch: UpdateMealEntry): Promise<MealEntry> {
     return firstValueFrom(this.http.patch<MealEntry>(`/api/v1/meal-entries/${id}`, patch));

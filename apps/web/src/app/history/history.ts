@@ -10,16 +10,14 @@ import {
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { TranslocoDirective, TranslocoService } from "@jsverse/transloco";
 import {
-  dayBalance,
   firstDayOfWeek,
-  groupByLocalDay,
   localDayKey,
   type MealEntry,
   monthGrid,
   type UpdateMealEntry,
   weekDays,
 } from "@ontrack/shared";
-import { MealService } from "../meals/meal";
+import { MealStore } from "../meals/meal-store";
 import { ProfileService } from "../profile/profile";
 import { CalendarCell } from "../ui/calendar-cell/calendar-cell";
 import { EntryRow } from "../ui/entry-row/entry-row";
@@ -33,12 +31,6 @@ type Granularity = "day" | "week" | "month";
 const VIEW_KEY = "ot.history.view";
 const HINT_KEY = "ot.history.swipeHintSeen";
 const HINT_MS = 2000;
-const UNDO_MS = 5000;
-
-interface PendingDelete {
-  entry: MealEntry;
-  timer: ReturnType<typeof setTimeout>;
-}
 
 @Component({
   selector: "ot-history",
@@ -75,8 +67,10 @@ interface PendingDelete {
         <button
           type="button"
           (click)="step(-1)"
+          [disabled]="atStart()"
           [attr.aria-label]="t('history.previous')"
-          class="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted active:bg-surface-muted"
+          data-testid="history-prev"
+          class="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted active:bg-surface-muted disabled:opacity-30"
         >
           ‹
         </button>
@@ -141,9 +135,10 @@ interface PendingDelete {
                 </span>
                 <span class="block font-medium text-ink">{{ d.label }}</span>
               </span>
-              <!-- Net balance for past/today only (colour follows its sign: surplus
-                   up-green, deficit down-green). Future days have nothing to total yet. -->
-              @if (!d.isFuture) {
+              <!-- Net balance for in-horizon past/today only (colour follows its sign:
+                   surplus up-green, deficit down-green). Future and pre-horizon days have
+                   nothing to total. -->
+              @if (!d.isFuture && !d.isBeforeStart) {
                 <span
                   class="tabular-nums font-semibold"
                   [attr.data-testid]="'week-day-net-' + d.key"
@@ -227,7 +222,7 @@ interface PendingDelete {
   `,
 })
 export class History implements OnDestroy {
-  private readonly meals = inject(MealService);
+  protected readonly store = inject(MealStore);
   private readonly profiles = inject(ProfileService);
   private readonly transloco = inject(TranslocoService);
   private readonly route = inject(ActivatedRoute);
@@ -237,27 +232,27 @@ export class History implements OnDestroy {
   // screen can send you straight back to the day you left.
   protected readonly granularity = signal<Granularity>(this.initialGranularity());
   protected readonly selectedDate = signal(this.initialDate());
-  protected readonly entries = signal<MealEntry[]>([]);
   protected readonly editing = signal<MealEntry | null>(null);
-  protected readonly pending = signal<PendingDelete | null>(null);
   /** Show the one-time swipe hint on the first row until the user has seen it. */
   protected readonly showHint = signal(localStorage.getItem(HINT_KEY) !== "1");
   private hintScheduled = false;
 
   private readonly lang = signal(this.transloco.getActiveLang());
   private readonly weekStart = computed(() => firstDayOfWeek(this.lang()));
-  private readonly tdee = computed(() => this.profiles.profile()?.tdee ?? 0);
   private readonly today = new Date();
   private readonly todayKey = localDayKey(this.today);
 
-  private readonly byDay = computed(() => groupByLocalDay(this.entries()));
+  // Entries + balance derivations live in the shared store; the page just reads them.
+  private readonly byDay = computed(() => this.store.byDay());
 
   constructor() {
     this.transloco.langChanges$.subscribe((l) => this.lang.set(l));
+    // The data horizon (earliest entry) bounds how far back the user can page.
+    void this.store.loadEarliest();
     // Load whenever the visible range changes.
     effect(() => {
       const { from, to } = this.range();
-      void this.load(from, to);
+      void this.store.load(from, to);
     });
     // The swipe hint plays once, the first time a day view shows entries. Persist it
     // so it never replays across sessions, and retire it shortly after so navigating
@@ -302,6 +297,31 @@ export class History implements OnDestroy {
     };
   });
 
+  /** Local day the user's data begins: the earlier of profile creation or first entry.
+   *  History never pages before it, and pre-horizon days show no net. */
+  private readonly startKey = computed(() => {
+    const created = this.profiles.profile()?.createdAt;
+    const createdKey = created ? localDayKey(new Date(created)) : null;
+    const earliest = this.store.earliestKey();
+    if (createdKey && earliest) return earliest < createdKey ? earliest : createdKey;
+    return createdKey ?? earliest;
+  });
+
+  /** First day of the currently viewed period. */
+  private readonly periodStartKey = computed(() => {
+    const d = this.selectedDate();
+    const g = this.granularity();
+    if (g === "month") return localDayKey(new Date(d.getFullYear(), d.getMonth(), 1));
+    if (g === "week") return weekDays(d, this.weekStart())[0].key;
+    return localDayKey(d);
+  });
+
+  /** Whether the visible period already reaches the data horizon (no paging further back). */
+  protected readonly atStart = computed(() => {
+    const start = this.startKey();
+    return start !== null && this.periodStartKey() <= start;
+  });
+
   protected readonly monthCells = computed(() => {
     const d = this.selectedDate();
     return monthGrid(d.getFullYear(), d.getMonth(), this.weekStart())
@@ -326,8 +346,9 @@ export class History implements OnDestroy {
       day: "numeric",
       month: "short",
     });
+    const start = this.startKey();
     return weekDays(this.selectedDate(), this.weekStart()).map((d) => {
-      const b = dayBalance(this.byDay().get(d.key) ?? [], this.tdee());
+      const b = this.store.dayBalance(d.key);
       return {
         key: d.key,
         date: d.date,
@@ -336,6 +357,8 @@ export class History implements OnDestroy {
         ...this.typesFor(d.key),
         isToday: d.key === this.todayKey,
         isFuture: d.key > this.todayKey,
+        // Days before the user's data horizon have no net to show (like future days).
+        isBeforeStart: start !== null && d.key < start,
       };
     });
   });
@@ -347,7 +370,9 @@ export class History implements OnDestroy {
     );
   });
 
-  protected readonly daySummary = computed(() => dayBalance(this.dayEntries(), this.tdee()));
+  protected readonly daySummary = computed(() =>
+    this.store.dayBalance(localDayKey(this.selectedDate())),
+  );
 
   /** Origin handed to the add flow so its back control returns to this exact day. */
   protected readonly addFrom = computed(
@@ -403,6 +428,7 @@ export class History implements OnDestroy {
   }
 
   protected step(dir: -1 | 1): void {
+    if (dir < 0 && this.atStart()) return; // don't page before the data horizon
     const d = this.selectedDate();
     if (this.granularity() === "month") {
       this.selectedDate.set(new Date(d.getFullYear(), d.getMonth() + dir, 1));
@@ -416,61 +442,29 @@ export class History implements OnDestroy {
     this.editing.set(entry);
   }
 
+  /** Snackbar state: the entry pending an optimistic delete, or null. */
+  protected pending(): MealEntry | null {
+    return this.store.pending();
+  }
+
   protected async onSaved(patch: UpdateMealEntry): Promise<void> {
     const e = this.editing();
     if (!e) return;
     try {
-      await this.meals.update(e.id, patch);
+      const { from, to } = this.range();
+      await this.store.update(e.id, patch, from, to);
       this.editing.set(null);
-      await this.reload();
     } catch {
       this.editor()?.markFailed();
     }
   }
 
   protected onDelete(entry: MealEntry): void {
-    this.flushPending(); // commit any previous pending delete first
-    this.entries.set(this.entries().filter((e) => e.id !== entry.id));
-    const timer = setTimeout(() => this.commit(entry.id), UNDO_MS);
-    this.pending.set({ entry, timer });
+    this.store.remove(entry);
   }
 
   protected undoDelete(): void {
-    const p = this.pending();
-    if (!p) return;
-    clearTimeout(p.timer);
-    this.pending.set(null);
-    this.entries.set([...this.entries(), p.entry]);
-  }
-
-  private commit(id: number): void {
-    this.pending.set(null);
-    void this.meals.remove(id).catch(() => this.reload());
-  }
-
-  private flushPending(): void {
-    const p = this.pending();
-    if (!p) return;
-    clearTimeout(p.timer);
-    this.pending.set(null);
-    void this.meals.remove(p.entry.id).catch(() => {});
-  }
-
-  private async load(from: Date, to: Date): Promise<void> {
-    try {
-      const fetched = await this.meals.listForRange(from, to);
-      // A delete is optimistic + deferred; keep the pending row hidden so a concurrent
-      // or late range-load within the undo window can't resurrect it.
-      const dropId = this.pending()?.entry.id;
-      this.entries.set(dropId == null ? fetched : fetched.filter((e) => e.id !== dropId));
-    } catch {
-      this.entries.set([]);
-    }
-  }
-
-  private async reload(): Promise<void> {
-    const { from, to } = this.range();
-    await this.load(from, to);
+    this.store.undoRemove();
   }
 
   private readView(): Granularity {
@@ -491,6 +485,6 @@ export class History implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.flushPending();
+    this.store.flushPending();
   }
 }

@@ -28,6 +28,8 @@ export const en = {
   },
   today: {
     title: "Today",
+    week: "Week",
+    month: "Month",
     intake: "Intake",
     activity: "Activity",
     net: "Net balance",

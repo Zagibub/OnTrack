@@ -220,6 +220,21 @@ export function buildApp({ auth, db, foodSearch, vision, photoDailyQuota = 20 }:
         return rows.map(toMealEntry);
       });
 
+      // The user's earliest logged entry (010). Bounds how far History can page back —
+      // paired with profile creation, whichever is earlier. Null when nothing is logged.
+      app.get("/api/v1/meal-entries/earliest", async (req, reply) => {
+        const user = await requireUser(req, reply);
+        if (!user) return;
+
+        const [row] = await db
+          .select({ loggedAt: mealEntries.loggedAt })
+          .from(mealEntries)
+          .where(eq(mealEntries.userId, user.id))
+          .orderBy(asc(mealEntries.loggedAt))
+          .limit(1);
+        return { loggedAt: row ? row.loggedAt.toISOString() : null };
+      });
+
       // Edit an entry (009). Only the owner's own row is touched; a non-matching id
       // (unknown or another user's) yields 404 with no ownership leak.
       app.patch("/api/v1/meal-entries/:id", async (req, reply) => {
