@@ -5,6 +5,7 @@ export { CalendarCell } from "./calendar-cell/calendar-cell";
 export { Card } from "./card/card";
 export { EntryRow } from "./entry-row/entry-row";
 export { Fab } from "./fab/fab";
+export { FabBar } from "./fab-bar/fab-bar";
 export { Chevron } from "./icons/chevron";
 export { Snackbar } from "./snackbar/snackbar";
 export { StatTile } from "./stat-tile/stat-tile";

@@ -10,6 +10,7 @@ import {
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { TranslocoDirective, TranslocoService } from "@jsverse/transloco";
 import {
+  type ExerciseEntry,
   firstDayOfWeek,
   localDayKey,
   type MealEntry,
@@ -17,11 +18,13 @@ import {
   type UpdateMealEntry,
   weekDays,
 } from "@ontrack/shared";
-import { MealStore } from "../meals/meal-store";
+import { DumbbellIcon } from "lucide-angular";
+import { type DayLogItem, MealStore } from "../meals/meal-store";
 import { ProfileService } from "../profile/profile";
 import { CalendarCell } from "../ui/calendar-cell/calendar-cell";
 import { EntryRow } from "../ui/entry-row/entry-row";
 import { Fab } from "../ui/fab/fab";
+import { FabBar } from "../ui/fab-bar/fab-bar";
 import { Snackbar } from "../ui/snackbar/snackbar";
 import { ThemeToggle } from "../ui/theme/theme-toggle";
 import { type ToggleOption, ViewToggle } from "../ui/view-toggle/view-toggle";
@@ -44,6 +47,7 @@ const HINT_MS = 2000;
     ThemeToggle,
     EntryEditor,
     Fab,
+    FabBar,
   ],
   template: `
     <main class="mx-auto max-w-md p-6" *transloco="let t">
@@ -174,34 +178,62 @@ const HINT_MS = 2000;
             </div>
           </div>
 
-          @if (dayEntries().length === 0) {
+          @if (dayLog().length === 0) {
             <p class="mt-8 text-center text-ink-muted" data-testid="day-empty">
               {{ t("history.dayEmpty") }}
             </p>
           } @else {
+            <!-- One time-ordered list of both kinds (011). Ids are per-table, so the
+                 row identity — for tracking and for testids — carries the kind too. -->
             <ul class="mt-4 flex flex-col gap-2">
-              @for (e of dayEntries(); track e.id; let first = $first) {
+              @for (item of dayLog(); track item.kind + item.entry.id; let first = $first) {
                 <li>
-                  <ot-entry-row
-                    [entryId]="e.id"
-                    [name]="e.name"
-                    [kcal]="e.kcal"
-                    [timeLabel]="timeLabel(e.loggedAt)"
-                    [kcalUnit]="t('today.kcal')"
-                    [deleteLabel]="t('history.delete')"
-                    [hint]="first && showHint()"
-                    (edit)="openEditor(e)"
-                    (delete)="onDelete(e)"
-                  />
+                  @if (item.kind === "meal") {
+                    <ot-entry-row
+                      [entryId]="item.entry.id"
+                      [name]="item.entry.name"
+                      [kcal]="item.entry.kcal"
+                      [timeLabel]="timeLabel(item.entry.loggedAt)"
+                      [kcalUnit]="t('today.kcal')"
+                      [deleteLabel]="t('history.delete')"
+                      [hint]="first && showHint()"
+                      (edit)="openEditor(item.entry)"
+                      (delete)="onDelete(item.entry)"
+                    />
+                  } @else {
+                    <!-- Workouts aren't editable yet (out of 011's scope), so a tap does
+                         nothing; delete + undo work exactly as for meals. -->
+                    <ot-entry-row
+                      testIdBase="workout"
+                      accent="activity"
+                      [entryId]="item.entry.id"
+                      [name]="workoutName(item.entry)"
+                      [kcal]="item.entry.kcal"
+                      [timeLabel]="workoutTimeLabel(item.entry)"
+                      [kcalUnit]="t('today.kcal')"
+                      [deleteLabel]="t('history.delete')"
+                      (delete)="onDeleteWorkout(item.entry)"
+                    />
+                  }
                 </li>
               }
             </ul>
           }
 
-          <!-- Same primary add action as Today; carries the viewed day so the add
-               screen's back returns here. The section's bottom padding keeps the
-               last entry clear of the button. -->
-          <ot-fab testId="history-add-entry" [label]="t('history.addEntry')" [from]="addFrom()" />
+          <!-- Same action pair as Today; both carry the viewed day so the add screen's
+               back returns here. The section's bottom padding keeps the last entry
+               clear of the buttons. -->
+          <ot-fab-bar>
+            <ot-fab testId="history-add-entry" [label]="t('history.addEntry')" [from]="addFrom()" />
+            <ot-fab
+              testId="history-add-activity"
+              link="/add/workout"
+              tone="activity"
+              [icon]="dumbbellIcon"
+              [label]="t('history.addActivity')"
+              [from]="addFrom()"
+            />
+          </ot-fab-bar>
         </section>
       }
 
@@ -209,7 +241,8 @@ const HINT_MS = 2000;
         <ot-entry-editor [entry]="e" (saved)="onSaved($event)" (cancel)="editing.set(null)" />
       }
 
-      @if (pending(); as p) {
+      <!-- One snackbar for both kinds; Undo routes to whichever delete is pending. -->
+      @if (pending() || pendingWorkout()) {
         <div class="fixed inset-x-0 bottom-6 z-30 px-6">
           <ot-snackbar
             [message]="t('history.deleted')"
@@ -227,6 +260,8 @@ export class History implements OnDestroy {
   private readonly transloco = inject(TranslocoService);
   private readonly route = inject(ActivatedRoute);
   private readonly editor = viewChild(EntryEditor);
+
+  protected readonly dumbbellIcon = DumbbellIcon;
 
   // Seeded from the URL (?g=&d=) when present, so a day is linkable and the add
   // screen can send you straight back to the day you left.
@@ -258,7 +293,7 @@ export class History implements OnDestroy {
     // so it never replays across sessions, and retire it shortly after so navigating
     // between days in this session doesn't loop the animation.
     effect(() => {
-      const hasRows = this.granularity() === "day" && this.dayEntries().length > 0;
+      const hasRows = this.granularity() === "day" && this.dayLog().length > 0;
       if (!hasRows || this.hintScheduled || !this.showHint()) return;
       this.hintScheduled = true;
       localStorage.setItem(HINT_KEY, "1");
@@ -363,12 +398,10 @@ export class History implements OnDestroy {
     });
   });
 
-  protected readonly dayEntries = computed(() => {
-    const key = localDayKey(this.selectedDate());
-    return [...(this.byDay().get(key) ?? [])].sort(
-      (a, b) => +new Date(a.loggedAt) - +new Date(b.loggedAt),
-    );
-  });
+  /** The viewed day's log — meals and workouts merged, time-ordered by the store. */
+  protected readonly dayLog = computed<DayLogItem[]>(() =>
+    this.store.dayLog(localDayKey(this.selectedDate())),
+  );
 
   protected readonly daySummary = computed(() =>
     this.store.dayBalance(localDayKey(this.selectedDate())),
@@ -380,13 +413,25 @@ export class History implements OnDestroy {
   );
 
   /**
-   * Which entry types a day has, for the at-a-glance dots. All meal entries are intake;
-   * `hasActivity` stays false until exercise logging ships (its entries will be fetched
-   * alongside meals and flagged here).
+   * Which entry types a day has, for the at-a-glance dots (011): every meal entry is
+   * intake, every exercise entry activity. A day can carry either, both or neither.
    */
   private typesFor(key: string): { hasIntake: boolean; hasActivity: boolean } {
-    const group = this.byDay().get(key) ?? [];
-    return { hasIntake: group.length > 0, hasActivity: false };
+    return {
+      hasIntake: (this.byDay().get(key) ?? []).length > 0,
+      hasActivity: (this.store.workoutsByDay().get(key) ?? []).length > 0,
+    };
+  }
+
+  /** A workout's row title: the built-in activity's name, or the free text for `other`. */
+  protected workoutName(entry: ExerciseEntry): string {
+    return entry.name ?? this.transloco.translate(`activity.types.${entry.activity}`);
+  }
+
+  /** Workout sub-label: the logged time plus its duration — "HH:MM · 45 min". */
+  protected workoutTimeLabel(entry: ExerciseEntry): string {
+    const mins = this.transloco.translate("activity.minutesShort");
+    return `${this.timeLabel(entry.loggedAt)} · ${entry.durationMin} ${mins}`;
   }
 
   protected title(): string {
@@ -447,6 +492,11 @@ export class History implements OnDestroy {
     return this.store.pending();
   }
 
+  /** Same, for a workout — either one raises the single undo snackbar. */
+  protected pendingWorkout(): ExerciseEntry | null {
+    return this.store.pendingWorkout();
+  }
+
   protected async onSaved(patch: UpdateMealEntry): Promise<void> {
     const e = this.editing();
     if (!e) return;
@@ -463,8 +513,14 @@ export class History implements OnDestroy {
     this.store.remove(entry);
   }
 
+  protected onDeleteWorkout(entry: ExerciseEntry): void {
+    this.store.removeWorkout(entry);
+  }
+
+  /** Undo whichever kind is pending; a workout delete wins if somehow both are. */
   protected undoDelete(): void {
-    this.store.undoRemove();
+    if (this.store.pendingWorkout()) this.store.undoRemoveWorkout();
+    else this.store.undoRemove();
   }
 
   private readView(): Granularity {

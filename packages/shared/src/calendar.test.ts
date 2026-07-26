@@ -106,4 +106,30 @@ describe("dayBalance", () => {
   it("treats an exact-maintenance day as deficit (down), never a special state", () => {
     expect(dayBalance([{ kcal: 2400 }], 2400).direction).toBe("deficit");
   });
+
+  // AC-3 (011): logged activity joins the expenditure side of the day's net.
+  it("adds logged activity to expenditure", () => {
+    const b = dayBalance([{ kcal: 2600 }], 2400, [{ kcal: 400 }]);
+    expect(b.intake).toBe(2600);
+    expect(b.activity).toBe(400);
+    expect(b.net).toBe(2600 - (2400 + 400)); // −200: a surplus turned into a deficit
+    expect(b.direction).toBe("deficit");
+  });
+
+  it("sums multiple workouts into the day's activity", () => {
+    expect(dayBalance([], 2400, [{ kcal: 300 }, { kcal: 120 }]).activity).toBe(420);
+  });
+
+  // AC-3 (011): a workout-only day is tracked data, not an untracked day — so the trend
+  // projection counts it (spec §7, "untracked ≠ inactive").
+  it("treats a day with only a workout as tracked, reporting a deficit", () => {
+    const b = dayBalance([], 2400, [{ kcal: 500 }]);
+    expect(b.direction).toBe("deficit");
+    expect(b.net).toBe(-2900);
+  });
+
+  it("still reports an untouched day as empty", () => {
+    expect(dayBalance([], 2400, []).direction).toBe("empty");
+    expect(dayBalance([], 2400).activity).toBe(0);
+  });
 });

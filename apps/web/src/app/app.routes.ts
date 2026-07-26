@@ -4,6 +4,7 @@ import { AddManual } from "./add/manual";
 import { AddPhoto } from "./add/photo";
 import { AddPlaceholder } from "./add/placeholder";
 import { AddSearch } from "./add/search";
+import { AddWorkout } from "./add/workout";
 import { authGuard } from "./auth/auth-guard";
 import { guestGuard } from "./auth/guest-guard";
 import { History } from "./history/history";
@@ -29,4 +30,5 @@ export const routes: Routes = [
     data: { labelKey: "add.describe" },
   },
   { path: "add/photo", component: AddPhoto, canActivate: [authGuard, profileRequiredGuard] },
+  { path: "add/workout", component: AddWorkout, canActivate: [authGuard, profileRequiredGuard] },
 ];

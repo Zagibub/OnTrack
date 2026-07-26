@@ -29,6 +29,13 @@
       "when": 1784574781694,
       "tag": "0003_photo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785096272446,
+      "tag": "0004_exercise_entries",
+      "breakpoints": true
     }
   ]
 }

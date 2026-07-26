@@ -1,7 +1,10 @@
 import {
   type ActivityLevel,
+  type ActivityType,
   AnalyzePhotoRequestSchema,
+  activityNameIsValid,
   ageFromBirthYear,
+  CreateExerciseEntrySchema,
   CreateMealEntrySchema,
   CreatePhotoMealSchema,
   calculateBmr,
@@ -10,13 +13,21 @@ import {
   makeUpsertProfileSchema,
   type Profile,
   type Sex,
+  UpdateExerciseEntrySchema,
   UpdateMealEntrySchema,
 } from "@ontrack/shared";
 import { and, asc, count, desc, eq, gte, lte } from "drizzle-orm";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import type { Auth } from "./auth/auth.js";
 import type { Db } from "./db/index.js";
-import { mealEntries, mealPhotos, photoAnalyses, profiles, weightEntries } from "./db/schema.js";
+import {
+  exerciseEntries,
+  mealEntries,
+  mealPhotos,
+  photoAnalyses,
+  profiles,
+  weightEntries,
+} from "./db/schema.js";
 import type { FoodSearch } from "./food-search.js";
 import type { VisionProvider } from "./vision.js";
 
@@ -84,6 +95,17 @@ function toMealEntry(row: typeof mealEntries.$inferSelect) {
     name: row.name,
     kcal: row.kcal,
     source: row.source,
+    loggedAt: row.loggedAt.toISOString(),
+  };
+}
+
+function toExerciseEntry(row: typeof exerciseEntries.$inferSelect) {
+  return {
+    id: row.id,
+    activity: row.activity as ActivityType,
+    name: row.name,
+    durationMin: row.durationMin,
+    kcal: row.kcal,
     loggedAt: row.loggedAt.toISOString(),
   };
 }
@@ -275,6 +297,124 @@ export function buildApp({ auth, db, foodSearch, vision, photoDailyQuota = 20 }:
           .delete(mealEntries)
           .where(and(eq(mealEntries.id, id), eq(mealEntries.userId, user.id)))
           .returning({ id: mealEntries.id });
+        if (!row) return reply.code(404).send({ message: "Not found" });
+        return reply.code(204).send();
+      });
+
+      // Workout logging (011). Same owner-scoping and 404-not-403 policy as meals.
+      app.post("/api/v1/exercise-entries", async (req, reply) => {
+        const user = await requireUser(req, reply);
+        if (!user) return;
+
+        const parsed = CreateExerciseEntrySchema.safeParse(req.body);
+        if (!parsed.success) {
+          return reply.code(400).send({ message: "Invalid entry", issues: parsed.error.issues });
+        }
+        const { activity, name, durationMin, kcal, loggedAt } = parsed.data;
+        const [row] = await db
+          .insert(exerciseEntries)
+          .values({
+            userId: user.id,
+            activity,
+            name,
+            durationMin,
+            kcal,
+            loggedAt: new Date(loggedAt),
+          })
+          .returning();
+        if (!row) return reply.code(500).send({ message: "Failed to save entry" });
+        return reply.code(201).send(toExerciseEntry(row));
+      });
+
+      app.get("/api/v1/exercise-entries", async (req, reply) => {
+        const user = await requireUser(req, reply);
+        if (!user) return;
+
+        const { from, to } = (req.query ?? {}) as { from?: string; to?: string };
+        const filters = [eq(exerciseEntries.userId, user.id)];
+        if (from) filters.push(gte(exerciseEntries.loggedAt, new Date(from)));
+        if (to) filters.push(lte(exerciseEntries.loggedAt, new Date(to)));
+
+        const rows = await db
+          .select()
+          .from(exerciseEntries)
+          .where(and(...filters))
+          .orderBy(asc(exerciseEntries.loggedAt));
+        return rows.map(toExerciseEntry);
+      });
+
+      // The workout half of the data horizon (AC-8); the web store takes the min of
+      // this and the meal horizon. Null when nothing is logged.
+      app.get("/api/v1/exercise-entries/earliest", async (req, reply) => {
+        const user = await requireUser(req, reply);
+        if (!user) return;
+
+        const [row] = await db
+          .select({ loggedAt: exerciseEntries.loggedAt })
+          .from(exerciseEntries)
+          .where(eq(exerciseEntries.userId, user.id))
+          .orderBy(asc(exerciseEntries.loggedAt))
+          .limit(1);
+        return { loggedAt: row ? row.loggedAt.toISOString() : null };
+      });
+
+      app.patch("/api/v1/exercise-entries/:id", async (req, reply) => {
+        const user = await requireUser(req, reply);
+        if (!user) return;
+
+        const id = Number((req.params as { id: string }).id);
+        if (!Number.isInteger(id)) return reply.code(404).send({ message: "Not found" });
+
+        const parsed = UpdateExerciseEntrySchema.safeParse(req.body);
+        if (!parsed.success) {
+          return reply.code(400).send({ message: "Invalid update", issues: parsed.error.issues });
+        }
+        const { activity, name, durationMin, kcal, loggedAt } = parsed.data;
+
+        // The other ⇔ name rule can only be judged on the merged row: `activity` and
+        // `name` may each be absent from the patch (spec §4).
+        const [current] = await db
+          .select()
+          .from(exerciseEntries)
+          .where(and(eq(exerciseEntries.id, id), eq(exerciseEntries.userId, user.id)))
+          .limit(1);
+        if (!current) return reply.code(404).send({ message: "Not found" });
+
+        const mergedActivity = activity ?? (current.activity as ActivityType);
+        const mergedName = name !== undefined ? name : current.name;
+        if (!activityNameIsValid(mergedActivity, mergedName)) {
+          return reply.code(400).send({
+            message: "name is required for 'other' and must be null otherwise",
+          });
+        }
+
+        const patch: Partial<typeof exerciseEntries.$inferInsert> = {};
+        if (activity !== undefined) patch.activity = activity;
+        if (name !== undefined) patch.name = name;
+        if (durationMin !== undefined) patch.durationMin = durationMin;
+        if (kcal !== undefined) patch.kcal = kcal;
+        if (loggedAt !== undefined) patch.loggedAt = new Date(loggedAt);
+
+        const [row] = await db
+          .update(exerciseEntries)
+          .set(patch)
+          .where(and(eq(exerciseEntries.id, id), eq(exerciseEntries.userId, user.id)))
+          .returning();
+        if (!row) return reply.code(404).send({ message: "Not found" });
+        return toExerciseEntry(row);
+      });
+
+      app.delete("/api/v1/exercise-entries/:id", async (req, reply) => {
+        const user = await requireUser(req, reply);
+        if (!user) return;
+
+        const id = Number((req.params as { id: string }).id);
+        if (!Number.isInteger(id)) return reply.code(404).send({ message: "Not found" });
+
+        const [row] = await db
+          .delete(exerciseEntries)
+          .where(and(eq(exerciseEntries.id, id), eq(exerciseEntries.userId, user.id)))
+          .returning({ id: exerciseEntries.id });
         if (!row) return reply.code(404).send({ message: "Not found" });
         return reply.code(204).send();
       });

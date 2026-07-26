@@ -2,12 +2,13 @@ import { Component, computed, effect, inject, type OnDestroy, signal } from "@an
 import { Router, RouterLink } from "@angular/router";
 import { TranslocoDirective, TranslocoService } from "@jsverse/transloco";
 import { firstDayOfWeek, localDayKey, type PeriodDay, weekDays } from "@ontrack/shared";
-import { CalendarDaysIcon, LucideAngularModule } from "lucide-angular";
+import { CalendarDaysIcon, DumbbellIcon, LucideAngularModule } from "lucide-angular";
 import { AuthService } from "../auth/auth";
 import { MealStore } from "../meals/meal-store";
 import { ProfileService } from "../profile/profile";
 import { Dropdown } from "../ui/dropdown/dropdown";
 import { Fab } from "../ui/fab/fab";
+import { FabBar } from "../ui/fab-bar/fab-bar";
 import { ThemeToggle } from "../ui/theme/theme-toggle";
 import type { ToggleOption } from "../ui/view-toggle/view-toggle";
 import { BalanceChart } from "./balance-chart";
@@ -36,6 +37,7 @@ interface LabelledDay extends PeriodDay {
     RouterLink,
     LucideAngularModule,
     Fab,
+    FabBar,
   ],
   template: `
     <main class="mx-auto max-w-md p-6" *transloco="let t">
@@ -145,7 +147,17 @@ interface LabelledDay extends PeriodDay {
         }
       }
 
-      <ot-fab testId="add-intake" [label]="t('today.addIntake')" />
+      <!-- The action pair: blue intake on the left, amber activity on the right (011). -->
+      <ot-fab-bar>
+        <ot-fab testId="add-intake" [label]="t('today.addIntake')" />
+        <ot-fab
+          testId="add-activity"
+          link="/add/workout"
+          tone="activity"
+          [icon]="dumbbellIcon"
+          [label]="t('today.addActivity')"
+        />
+      </ot-fab-bar>
 
       <button
         type="button"
@@ -165,6 +177,7 @@ export class Today implements OnDestroy {
   private readonly transloco = inject(TranslocoService);
 
   protected readonly calendarIcon = CalendarDaysIcon;
+  protected readonly dumbbellIcon = DumbbellIcon;
 
   /** The reference "now", re-stamped each minute so the balance visibly burns down. */
   protected readonly now = signal(new Date());

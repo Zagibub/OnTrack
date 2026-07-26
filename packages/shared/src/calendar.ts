@@ -32,7 +32,9 @@ export type BalanceDirection = "empty" | "surplus" | "deficit";
 
 export interface DayBalanceResult {
   intake: number;
-  /** intake − expenditure. Positive = ate more than burned. */
+  /** Logged exercise burn — the extra expenditure on top of the baseline. */
+  activity: number;
+  /** intake − (expenditure + activity). Positive = ate more than burned. */
   net: number;
   direction: BalanceDirection;
 }
@@ -116,17 +118,22 @@ export function groupByLocalDay<T extends { loggedAt: string | number | Date }>(
 }
 
 /**
- * Directional day balance. `expenditure` is a single figure (today: TDEE; later
- * TDEE + exercise burn). No entries → `empty`; net > 0 → `surplus` (up); else `deficit`
- * (down). There is deliberately no "good/bad" state.
+ * Directional day balance. `expenditure` is the day's baseline (TDEE); `workouts` add
+ * their logged burn on top of it, so `net = intake − (TDEE + activity)`.
+ *
+ * Nothing logged at all → `empty`; net > 0 → `surplus` (up); else `deficit` (down). A
+ * day holding only a workout is still tracked data, not an untracked day, so it gets a
+ * direction (011 §7). There is deliberately no "good/bad" state.
  */
 export function dayBalance(
   entries: ReadonlyArray<{ kcal: number }>,
   expenditure: number,
+  workouts: ReadonlyArray<{ kcal: number }> = [],
 ): DayBalanceResult {
   const intake = entries.reduce((sum, e) => sum + e.kcal, 0);
-  const net = intake - expenditure;
-  const direction: BalanceDirection =
-    entries.length === 0 ? "empty" : net > 0 ? "surplus" : "deficit";
-  return { intake, net, direction };
+  const activity = workouts.reduce((sum, w) => sum + w.kcal, 0);
+  const net = intake - (expenditure + activity);
+  const tracked = entries.length > 0 || workouts.length > 0;
+  const direction: BalanceDirection = !tracked ? "empty" : net > 0 ? "surplus" : "deficit";
+  return { intake, activity, net, direction };
 }

@@ -8,7 +8,7 @@ const meta: Meta<EntryRow> = {
     props: args,
     template: `<div style="max-width:24rem"><ot-entry-row
       [entryId]="entryId" [name]="name" [kcal]="kcal" [timeLabel]="timeLabel"
-      [hint]="hint" /></div>`,
+      [accent]="accent" [hint]="hint" /></div>`,
   }),
 };
 export default meta;
@@ -29,6 +29,16 @@ export const LongName: Story = {
 /** Hover the row on a pointer device to reveal the trailing trash affordance. */
 export const HoverToDelete: Story = {
   args: { entryId: 3, name: "Greek yogurt", kcal: 120, timeLabel: "10:40" },
+};
+/** A logged workout: amber kcal figure, duration in the sub-label (011). */
+export const ActivityAccent: Story = {
+  args: {
+    entryId: 5,
+    name: "Running",
+    kcal: 554,
+    timeLabel: "07:30 · 45 min",
+    accent: "activity",
+  },
 };
 /** One-time swipe hint — plays on touch devices (emulate a touch device to see it). */
 export const SwipeHint: Story = {

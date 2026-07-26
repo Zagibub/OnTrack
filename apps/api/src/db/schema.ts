@@ -112,6 +112,24 @@ export const mealEntries = pgTable("meal_entries", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// A logged workout (011). Follows meal_entries with an absolute `logged_at` rather than
+// SPEC §6's date + duration sketch, so hour-of-day bucketing and DST work identically.
+export const exerciseEntries = pgTable("exercise_entries", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  // An ActivityType key; the built-in label is an i18n concern, never stored.
+  activity: text("activity").notNull(),
+  // Free text, set only for the "other" activity.
+  name: text("name"),
+  durationMin: integer("duration_min").notNull(),
+  // Denormalised at save time, so history never shifts if the MET tables change.
+  kcal: integer("kcal").notNull(),
+  loggedAt: timestamp("logged_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // One row per successful vision analysis — powers the per-user daily quota (SPEC §3.6).
 export const photoAnalyses = pgTable("photo_analyses", {
   id: serial("id").primaryKey(),
@@ -125,6 +143,7 @@ export type ProfileRow = typeof profiles.$inferSelect;
 export type WeightEntryRow = typeof weightEntries.$inferSelect;
 export type MealEntryRow = typeof mealEntries.$inferSelect;
 export type MealPhotoRow = typeof mealPhotos.$inferSelect;
+export type ExerciseEntryRow = typeof exerciseEntries.$inferSelect;
 export type PhotoAnalysisRow = typeof photoAnalyses.$inferSelect;
 
 export const emailLog = pgTable("email_log", {

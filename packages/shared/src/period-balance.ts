@@ -29,6 +29,12 @@ export interface PeriodBalanceParams {
   tdee: number;
   /** Intake kcal keyed by local day. Missing days count as 0. */
   intakeByDay?: Readonly<Record<string, number>>;
+  /**
+   * Logged exercise burn keyed by local day, added to that day's expenditure. Missing
+   * days count as 0 — an untracked day means nothing was logged, not that the user
+   * rested (011 §7). Only elapsed days use it; the forecast rides `projectedDailyNet`.
+   */
+  burnByDay?: Readonly<Record<string, number>>;
   /** Local day key of "today". Its baseline is prorated by `todayFraction`. */
   todayKey: string;
   /** Fraction of today elapsed, 0–1. Prorates today's expenditure. Defaults to 1. */
@@ -45,7 +51,7 @@ export interface PeriodBalance {
   /** One cumulative point per day, in the input order. */
   points: PeriodPoint[];
   /** Cumulative values as of today ("now") — the headline figures. */
-  totals: { intake: number; net: number };
+  totals: { intake: number; activity: number; net: number };
 }
 
 export function computePeriodBalance(params: PeriodBalanceParams): PeriodBalance {
@@ -53,6 +59,7 @@ export function computePeriodBalance(params: PeriodBalanceParams): PeriodBalance
     days,
     tdee,
     intakeByDay = {},
+    burnByDay = {},
     todayKey,
     todayFraction = 1,
     projectedDailyNet = null,
@@ -61,9 +68,10 @@ export function computePeriodBalance(params: PeriodBalanceParams): PeriodBalance
 
   const points: PeriodPoint[] = [];
   let intake = 0;
+  let activity = 0;
   let expenditure = 0;
   // Default the headline to zeros so a period with no elapsed day (all future) is sane.
-  const totals = { intake: 0, net: 0 };
+  const totals = { intake: 0, activity: 0, net: 0 };
   let balance = 0;
 
   for (const { key } of days) {
@@ -75,15 +83,19 @@ export function computePeriodBalance(params: PeriodBalanceParams): PeriodBalance
       continue;
     }
 
-    // Baseline burns every elapsed day, prorated for the in-progress one.
-    expenditure += tdee * (key === todayKey ? fraction : 1);
+    // Baseline burns every elapsed day, prorated for the in-progress one; a logged
+    // workout adds its burn on top in full (it happened, however far into the day).
+    const burn = burnByDay[key] ?? 0;
+    expenditure += tdee * (key === todayKey ? fraction : 1) + burn;
     intake += intakeByDay[key] ?? 0;
+    activity += burn;
     balance = intake - expenditure;
 
     points.push({ key, intake, balance, projected: false });
 
     // Headline tracks the last elapsed day; today is its natural end.
     totals.intake = intake;
+    totals.activity = activity;
     totals.net = balance;
   }
 

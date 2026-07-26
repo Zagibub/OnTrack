@@ -39,7 +39,11 @@ describe("computePeriodBalance", () => {
     expect(points[0]?.balance).toBeCloseTo(-2400);
     expect(points[1]?.balance).toBeCloseTo(-4800);
     expect(points[2]?.balance).toBeCloseTo(-7200); // through "today"
-    expect(totals).toEqual({ intake: expect.closeTo(0), net: expect.closeTo(-7200) });
+    expect(totals).toEqual({
+      intake: expect.closeTo(0),
+      activity: expect.closeTo(0),
+      net: expect.closeTo(-7200),
+    });
   });
 
   // Days after today continue the supplied trend, not a zero-intake baseline — so the
@@ -87,6 +91,59 @@ describe("computePeriodBalance", () => {
     expect(points[0]?.balance).toBeCloseTo(-400); // 2000 − 2400
     expect(points[1]?.balance).toBeCloseTo(-2800); // 2000 − 4800
     expect(points[2]?.balance).toBeCloseTo(-3000); // 3000 − 6000
-    expect(totals).toEqual({ intake: expect.closeTo(3000), net: expect.closeTo(-3000) });
+    expect(totals).toEqual({
+      intake: expect.closeTo(3000),
+      activity: expect.closeTo(0),
+      net: expect.closeTo(-3000),
+    });
+  });
+
+  // AC-4 (011): an elapsed day's expenditure includes its logged burn, and the burn
+  // accumulates into the headline.
+  it("adds each elapsed day's logged burn to expenditure and to totals.activity", () => {
+    const { points, totals } = computePeriodBalance({
+      days: WEEK,
+      tdee: 2400,
+      intakeByDay: { "2026-07-20": 2400, "2026-07-21": 2400, "2026-07-22": 2400 },
+      burnByDay: { "2026-07-20": 400, "2026-07-22": 300 },
+      todayKey: "2026-07-22",
+    });
+    expect(points[0]?.balance).toBeCloseTo(-400); // 2400 − (2400 + 400)
+    expect(points[1]?.balance).toBeCloseTo(-400); // break-even day adds nothing
+    expect(points[2]?.balance).toBeCloseTo(-700); // −400 − 300
+    expect(totals).toEqual({
+      intake: expect.closeTo(7200),
+      activity: expect.closeTo(700),
+      net: expect.closeTo(-700),
+    });
+  });
+
+  // AC-4 (011): the forecast rides `projectedDailyNet` alone — a burn keyed to a future
+  // day is never invented into the projection.
+  it("leaves projected days unaffected by burnByDay", () => {
+    const { points } = computePeriodBalance({
+      days: WEEK,
+      tdee: 2400,
+      burnByDay: { "2026-07-24": 9999 }, // a future burn must not count
+      todayKey: "2026-07-22",
+      projectedDailyNet: -400,
+    });
+    expect(points[2]?.balance).toBeCloseTo(-7200); // today, unchanged
+    expect(points[3]?.balance).toBeCloseTo(-7600); // −7200 + (−400), not −17199
+  });
+
+  // A workout logged for today counts in full even though today's baseline is prorated:
+  // the session happened, whatever hour it was.
+  it("counts today's burn in full while the baseline is still prorated", () => {
+    const { totals } = computePeriodBalance({
+      days: WEEK,
+      tdee: 2400,
+      todayFraction: 0.5, // 1200 kcal of baseline so far
+      burnByDay: { "2026-07-22": 500 },
+      todayKey: "2026-07-22",
+    });
+    // expenditure = 2400 + 2400 + 1200 + 500 = 6500
+    expect(totals.activity).toBeCloseTo(500);
+    expect(totals.net).toBeCloseTo(-6500);
   });
 });

@@ -1,12 +1,15 @@
-import { Component, input, output, signal } from "@angular/core";
+import { Component, computed, input, output, signal } from "@angular/core";
 import { LucideAngularModule, Trash2Icon } from "lucide-angular";
 
 const OPEN_OFFSET = -88; // px the row slides to reveal Delete
 const SNAP_THRESHOLD = -44;
 
 /**
- * A meal-entry row (009). Tapping the content emits `edit`; deleting emits `delete`.
- * Testids follow the AC: `entry-<id>` / `delete-entry-<id>`.
+ * A logged-entry row (009) — a meal, or with `accent="activity"` a workout (011).
+ * Tapping the content emits `edit`; deleting emits `delete`.
+ * Testids follow the AC: `entry-<id>` / `delete-entry-<id>`. Meals and workouts are
+ * separate tables with independent ids, so a day log holding both would produce
+ * duplicate testids — `testIdBase` keeps them apart (`workout-<id>` for the latter).
  *
  * The delete affordance adapts to the input device:
  *  - Touch (`hover: none`): swipe the row left to reveal the Delete button. A faint
@@ -55,7 +58,7 @@ const SNAP_THRESHOLD = -44;
            touch devices; hidden on pointer devices in favour of the hover affordance. -->
       <button
         type="button"
-        [attr.data-testid]="'delete-entry-' + entryId()"
+        [attr.data-testid]="'delete-' + testIdBase() + '-' + entryId()"
         [attr.aria-label]="deleteLabel()"
         (click)="delete.emit()"
         class="absolute inset-y-0 right-0 flex w-22 items-center justify-center bg-danger text-on-danger [@media(hover:hover)]:hidden"
@@ -65,7 +68,7 @@ const SNAP_THRESHOLD = -44;
 
       <button
         type="button"
-        [attr.data-testid]="'entry-' + entryId()"
+        [attr.data-testid]="testIdBase() + '-' + entryId()"
         (click)="edit.emit()"
         (keydown.delete)="delete.emit()"
         (touchstart)="onTouchStart($event)"
@@ -79,7 +82,7 @@ const SNAP_THRESHOLD = -44;
           <span class="block truncate font-medium text-ink">{{ name() }}</span>
           <span class="block text-xs text-ink-muted">{{ timeLabel() }}</span>
         </span>
-        <span class="shrink-0 tabular-nums font-semibold text-[#3b82f6]">
+        <span class="shrink-0 tabular-nums font-semibold" [class]="accentClass()">
           {{ kcal() }} {{ kcalUnit() }}
         </span>
       </button>
@@ -94,7 +97,7 @@ const SNAP_THRESHOLD = -44;
       <button
         type="button"
         tabindex="-1"
-        [attr.data-testid]="'delete-entry-hover-' + entryId()"
+        [attr.data-testid]="'delete-' + testIdBase() + '-hover-' + entryId()"
         [attr.aria-label]="deleteLabel()"
         (click)="delete.emit()"
         class="absolute inset-y-0 right-0 hidden w-20 items-center justify-end bg-gradient-to-l from-surface from-55% to-transparent pr-4 text-ink-muted opacity-0 transition-opacity [@media(hover:hover)]:flex group-hover:opacity-100 group-focus-within:opacity-100 hover:text-danger focus-visible:text-danger focus-visible:opacity-100"
@@ -111,10 +114,18 @@ export class EntryRow {
   readonly timeLabel = input("");
   readonly kcalUnit = input("kcal");
   readonly deleteLabel = input("Delete");
+  /** Which side of the balance the row logs: blue intake or amber activity (011). */
+  readonly accent = input<"intake" | "activity">("intake");
+  /** Testid stem — `entry` for meals, `workout` for exercise entries. */
+  readonly testIdBase = input("entry");
   /** When true, plays the one-time swipe-hint animation (touch devices only). */
   readonly hint = input(false);
   readonly edit = output<void>();
   readonly delete = output<void>();
+
+  protected readonly accentClass = computed(() =>
+    this.accent() === "activity" ? "text-[#f59e0b]" : "text-[#3b82f6]",
+  );
 
   protected readonly offset = signal(0);
   private startX = 0;
